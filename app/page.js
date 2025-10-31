@@ -4,7 +4,7 @@ import { motion } from "framer-motion";
 import { TbAward } from "react-icons/tb";
 import { PiMoneyWavy } from "react-icons/pi";
 import { FiMapPin, FiPhone, FiSend } from "react-icons/fi";
-import { MdOutlineMail } from "react-icons/md";
+import { MdOutlineAccessTime } from "react-icons/md";
 import solarlanding from "../public/landing.jpg";
 import { FaWhatsapp } from "react-icons/fa";
 import Goods from "./component/Goods";
@@ -26,7 +26,7 @@ export default function Home() {
           </p>
           <motion.button
             whileTap={{ scale: 0.7 }}
-            className="mt-8 flex gap-2 items-center bg-amber-900 text-white px-8 py-4 rounded-full font-semibold hover:bg-green-600 transition"
+            className="mt-8 flex gap-2 items-center bg-amber-950 text-white px-8 py-4 rounded-full font-semibold hover:bg-amber-800 transition"
           >
             <FaWhatsapp className="animate-pulse" /> Buy Now
           </motion.button>
@@ -54,7 +54,7 @@ export default function Home() {
 
       <section>
         <div className="w-5/6 mx-auto text-center">
-          <p className="text-red-800 text-4xl font-semibold animate-pulse">
+          <p className="text-red-950 text-4xl font-semibold animate-pulse">
             Limited Time Offer
           </p>
           <p className="mt-5 text-2xl font-semibold">
@@ -72,7 +72,7 @@ export default function Home() {
             className="grid grid-cols-1 lg:grid-cols-3 gap-8 my-20 w-5/6 mx-auto"
           >
             <div className="text-center shadow-lg rounded-2xl p-8 bg-linear-to-b from-amber-50 via-white to-white">
-              <div className="px-3 py-3 rounded-xl mb-3 w-fit bg-amber-200 text-amber-950 mx-auto">
+              <div className="px-3 py-3 rounded-xl mb-3 w-fit bg-amber-950 text-white mx-auto">
                 <TbAward className="h-6 w-6 text-primary" />
               </div>
               <h3 className="font-semibold text-lg mb-2">Warranty</h3>
@@ -83,7 +83,7 @@ export default function Home() {
             </div>
 
             <div className="text-center shadow-lg rounded-2xl p-8 bg-linear-to-b from-amber-50 via-white to-white">
-              <div className="px-3 py-3 rounded-xl mb-3 w-fit bg-amber-200 text-amber-950 mx-auto">
+              <div className="px-3 py-3 rounded-xl mb-3 w-fit bg-amber-950 text-white mx-auto">
                 <PiMoneyWavy className="h-6 w-6 text-primary" />
               </div>
               <h3 className="font-semibold text-lg mb-2">Payment</h3>
@@ -93,14 +93,14 @@ export default function Home() {
             </div>
 
             <div className="text-center shadow-lg rounded-2xl p-8 bg-linear-to-b from-amber-50 via-white to-white">
-              <div className="px-3 py-3 rounded-xl mb-3 w-fit bg-amber-200 text-amber-950 mx-auto">
-                <FiMapPin className="h-6 w-6 text-primary" />
+              <div className="px-3 py-3 rounded-xl mb-3 w-fit bg-amber-950 text-white mx-auto">
+                <MdOutlineAccessTime className="h-6 w-6 text-primary" />
               </div>
-              <h3 className="font-semibold">Headquarters</h3>
-              <p className="text-sm text-muted-foreground text-gray-500 mb-5">
-                Worldwide Delivery
+              <h3 className="font-semibold text-lg mb-2">Lifespan</h3>
+              <p className="w-5/6 mx-auto text-muted-foreground text-gray-500">
+                Up to 10 Years Lifespan guranteed
               </p>
-              <p className="">Ottawa, Canada</p>
+              
               
             </div>
           </motion.div>
@@ -139,7 +139,7 @@ export default function Home() {
           <div className="flex justify-center">
             <motion.button
               whileTap={{ scale: 0.7 }}
-              className="flex gap-2 items-center bg-amber-900 text-white px-8 py-4 rounded-full font-semibold hover:bg-green-600 transition"
+              className="flex gap-2 items-center bg-amber-950 text-white px-8 py-4 rounded-full font-semibold hover:bg-amber-800 transition"
             >
               <FaWhatsapp className="animate-pulse" /> Contact Us
             </motion.button>
