@@ -26,7 +26,7 @@ export default function Home() {
           </p>
           <motion.button
             whileTap={{ scale: 0.7 }}
-            className="mt-8 flex gap-2 items-center bg-amber-800 text-white px-8 py-4 rounded-full font-semibold hover:bg-amber-800 transition"
+            className="mt-8 flex gap-2 items-center bg-green-800 text-white px-8 py-4 rounded-full font-semibold hover:bg-green-600 transition"
           >
             <FaWhatsapp className="animate-pulse" /> Buy Now
           </motion.button>
@@ -49,7 +49,9 @@ export default function Home() {
             <span className="font-semibold">Dust Resistance</span>
           </p>
         </div>
-        <Goods />
+        <div className="grid grid-cols-1 lg:grid-cols-4 gap-4">
+          <Goods />
+        </div>
       </section>
 
       <section>
@@ -72,7 +74,7 @@ export default function Home() {
             className="grid grid-cols-1 lg:grid-cols-3 gap-8 my-20 w-5/6 mx-auto"
           >
             <div className="text-center shadow-lg rounded-2xl p-8 bg-linear-to-b from-amber-50 via-white to-white">
-              <div className="px-3 py-3 rounded-xl mb-3 w-fit bg-amber-800 text-white mx-auto">
+              <div className="px-3 py-3 rounded-xl mb-3 w-fit bg-green-800 text-white mx-auto">
                 <TbAward className="h-6 w-6 text-primary" />
               </div>
               <h3 className="font-semibold text-lg mb-2">Warranty</h3>
@@ -83,7 +85,7 @@ export default function Home() {
             </div>
 
             <div className="text-center shadow-lg rounded-2xl p-8 bg-linear-to-b from-amber-50 via-white to-white">
-              <div className="px-3 py-3 rounded-xl mb-3 w-fit bg-amber-800 text-white mx-auto">
+              <div className="px-3 py-3 rounded-xl mb-3 w-fit bg-green-800 text-white mx-auto">
                 <PiMoneyWavy className="h-6 w-6 text-primary" />
               </div>
               <h3 className="font-semibold text-lg mb-2">Payment</h3>
@@ -93,7 +95,7 @@ export default function Home() {
             </div>
 
             <div className="text-center shadow-lg rounded-2xl p-8 bg-linear-to-b from-amber-50 via-white to-white">
-              <div className="px-3 py-3 rounded-xl mb-3 w-fit bg-amber-800 text-white mx-auto">
+              <div className="px-3 py-3 rounded-xl mb-3 w-fit bg-green-800 text-white mx-auto">
                 <MdOutlineAccessTime className="h-6 w-6 text-primary" />
               </div>
               <h3 className="font-semibold text-lg mb-2">Lifespan</h3>
@@ -105,7 +107,7 @@ export default function Home() {
             </div>
           </motion.div>
 
-      <section className="my-20 py-10 text-white text-center w-5/6 mx-auto rounded-3xl bg-linear-to-r from-black via-slate-800 to-amber-950">
+      <section className="my-20 py-10 text-white text-center w-5/6 mx-auto rounded-3xl bg-linear-to-r from-black via-slate-800 to-green-950">
         <div className="">
           <p className="font-semibold text-2xl">VERY IMPORTANT INFORMATION</p>
           <div className="mt-5 w-5/6 mx-auto space-y-10">
@@ -139,7 +141,7 @@ export default function Home() {
           <div className="flex justify-center">
             <motion.button
               whileTap={{ scale: 0.7 }}
-              className="flex gap-2 items-center bg-amber-800 text-white px-8 py-4 rounded-full font-semibold hover:bg-amber-800 transition"
+              className="flex gap-2 items-center bg-green-800 text-white px-8 py-4 rounded-full font-semibold hover:bg-green-600 transition"
             >
               <FaWhatsapp className="animate-pulse" /> Contact Us
             </motion.button>
