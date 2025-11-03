@@ -8,6 +8,7 @@ import { MdOutlineAccessTime } from "react-icons/md";
 import solarlanding from "../public/landing.jpg";
 import { FaWhatsapp } from "react-icons/fa";
 import Goods from "./component/Goods";
+import { solarProductsData } from "./component/data";
 
 export default function Home() {
   return (
@@ -50,7 +51,12 @@ export default function Home() {
           </p>
         </div>
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-4">
-          <Goods />
+          {solarProductsData.map((item, index) => (
+            <Goods 
+              key={index}
+              {...item}
+            />
+          ))}
         </div>
       </section>
 
