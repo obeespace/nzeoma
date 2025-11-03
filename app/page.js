@@ -9,6 +9,7 @@ import solarlanding from "../public/landing.jpg";
 import { FaWhatsapp } from "react-icons/fa";
 import Goods from "./component/Goods";
 import { solarProductsData } from "./component/data";
+import Link from "next/link";
 
 export default function Home() {
   return (
@@ -25,12 +26,12 @@ export default function Home() {
             2-year warranty and up to 10 years lifespan, giving you reliable
             lighting powered by the sun.
           </p>
-          <motion.button
+          <Link href='https://wa.link/a4gni5' target="_blank"><motion.button
             whileTap={{ scale: 0.7 }}
             className="mt-8 flex gap-2 items-center bg-green-800 text-white px-8 py-4 rounded-full font-semibold hover:bg-green-600 transition"
           >
             <FaWhatsapp className="animate-pulse" /> Buy Now
-          </motion.button>
+          </motion.button></Link>
         </div>
         <Image
           src={solarlanding}
@@ -50,7 +51,7 @@ export default function Home() {
             <span className="font-semibold">Dust Resistance</span>
           </p>
         </div>
-        <div className="grid grid-cols-1 lg:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 space-y-10 lg:grid-cols-4 gap-4">
           {solarProductsData.map((item, index) => (
             <Goods 
               key={index}
@@ -145,12 +146,12 @@ export default function Home() {
             <span className="font-semibold">09123456789</span>
           </p>
           <div className="flex justify-center">
-            <motion.button
+            <Link href='https://wa.link/a4gni5' target="_blank"><motion.button
               whileTap={{ scale: 0.7 }}
               className="flex gap-2 items-center bg-green-800 text-white px-8 py-4 rounded-full font-semibold hover:bg-green-600 transition"
             >
               <FaWhatsapp className="animate-pulse" /> Contact Us
-            </motion.button>
+            </motion.button></Link>
           </div>
           <hr className="w-4/6 text-gray-700 mx-auto" />
           <p className="text-xl">All Rights Reserved | Nzeoma 2025</p>
