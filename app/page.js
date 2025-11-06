@@ -5,7 +5,9 @@ import { TbAward } from "react-icons/tb";
 import { PiMoneyWavy } from "react-icons/pi";
 import { MdOutlineAccessTime } from "react-icons/md";
 import { LuSend } from "react-icons/lu";
+import { Toaster, toast } from "sonner";
 import solarlanding from "../public/landing.jpg";
+import emailjs from "@emailjs/browser";
 import { FaWhatsapp } from "react-icons/fa";
 import Goods from "./component/Goods";
 import { solarProductsData } from "./component/data";
@@ -15,6 +17,68 @@ import { useState } from "react";
 export default function Home() {
   const [selectedProducts, setSelectedProducts] = useState([]);
   const [currentProduct, setCurrentProduct] = useState("");
+
+  const sendEmail = (e) => {
+    e.preventDefault();
+
+    if (!isFormValid()) {
+      toast.error("Please fill in all required fields and select at least one product.");
+      return;
+    }
+
+    // Prepare email data with common EmailJS template variable names
+    const emailData = {
+      user_name: formData.fullName,
+      user_email: formData.phoneNumber, // Using phone as contact info
+      user_phone: formData.phoneNumber,
+      delivery_address: formData.address,
+      delivery_state: formData.state,
+      delivery_timing: formData.deliveryTiming,
+      message: selectedProducts.map(p => `${p.name} (Quantity: ${p.quantity}) - ${p.price} each`).join('\n'),
+      selected_products: selectedProducts.map(p => `${p.name} (Qty: ${p.quantity}) - ${p.price}`).join('\n'),
+      total_amount: `₦${calculateTotal().toLocaleString()}`,
+      // Additional fields with different naming conventions
+      from_name: formData.fullName,
+      phone_number: formData.phoneNumber,
+      full_name: formData.fullName,
+      address: formData.address,
+      state: formData.state,
+      timing: formData.deliveryTiming,
+      products: selectedProducts.map(p => `${p.name} (Qty: ${p.quantity}) - ${p.price}`).join('\n'),
+      total: `₦${calculateTotal().toLocaleString()}`
+    };
+
+    console.log("Sending email with data:", emailData); // Debug log
+
+    emailjs
+      .send(
+        "service_rxkn2tl", 
+        "template_a2kcvvb", 
+        emailData,
+        "E_sBA160DotyE3DqV"
+      )
+      .then(
+        (result) => {
+          console.log("EmailJS Success:", result.text);
+          toast.success("Order submitted successfully!");
+          
+          // Manually reset the form state
+          setFormData({
+            fullName: "",
+            phoneNumber: "",
+            address: "",
+            state: "",
+            deliveryTiming: ""
+          });
+          setSelectedProducts([]);
+          setCurrentProduct("");
+        },
+        (error) => {
+          console.log("EmailJS Error:", error);
+          toast.error("Failed to send order. Please try again.");
+        }
+      );
+  };
   
   // Form validation state
   const [formData, setFormData] = useState({
@@ -97,6 +161,7 @@ export default function Home() {
 
   return (
     <main>
+      <Toaster position="top-right" />
       <section className="mx-auto lg:grid lg:grid-cols-2 lg:gap-20 w-5/6 my-20 lg:my-32 items-center">
         <div>
           <h1 className="font-black text-4xl">
@@ -218,7 +283,7 @@ export default function Home() {
         </div>
       </section>
 
-      <section className="my-20 mx-auto w-5/6">
+      <section className="my-20 lg:py-10 mx-auto w-5/6">
         <div className="flex justify-center"><p className="text-2xl font-semibold text-center mb-10 lg:w-3/6">
           FILL THE FORM BELOW TO ORDER FOR THIS SOLAR LIGHT.
         </p></div>
@@ -301,7 +366,7 @@ export default function Home() {
             <div className="space-y-4">
               <div className="lg:flex gap-3">
                 <select
-                  className="block border flex-1 border-gray-300 rounded-full px-4 py-2 focus:outline-none focus:ring-2 focus:ring-green-600 bg-white"
+                  className="block w-full border border-gray-300 rounded-full px-4 py-2 focus:outline-none focus:ring-2 focus:ring-green-600 bg-white"
                   value={currentProduct}
                   onChange={(e) => setCurrentProduct(e.target.value)}
                 >
@@ -400,7 +465,7 @@ export default function Home() {
 
           <div className="flex justify-center mt-12">
             <button 
-              onClick={handleSubmit}
+              onClick={sendEmail}
               disabled={!isFormValid()}
               className={`flex gap-1 items-center text-white px-8 py-3 rounded-full w-fit font-semibold transition ${
                 isFormValid() 
