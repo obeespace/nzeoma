@@ -10,8 +10,91 @@ import { FaWhatsapp } from "react-icons/fa";
 import Goods from "./component/Goods";
 import { solarProductsData } from "./component/data";
 import Link from "next/link";
+import { useState } from "react";
 
 export default function Home() {
+  const [selectedProducts, setSelectedProducts] = useState([]);
+  const [currentProduct, setCurrentProduct] = useState("");
+  
+  // Form validation state
+  const [formData, setFormData] = useState({
+    fullName: "",
+    phoneNumber: "",
+    address: "",
+    state: "",
+    deliveryTiming: ""
+  });
+
+  const addProduct = (productName) => {
+    if (!productName) return;
+    
+    const product = solarProductsData.find(p => p.name === productName);
+    const existingProduct = selectedProducts.find(p => p.name === productName);
+    
+    if (existingProduct) {
+      setSelectedProducts(selectedProducts.map(p => 
+        p.name === productName ? {...p, quantity: p.quantity + 1} : p
+      ));
+    } else {
+      setSelectedProducts([...selectedProducts, {
+        name: product.name,
+        price: product.price,
+        quantity: 1,
+        numericPrice: parseInt(product.price.replace(/[₦,]/g, ''))
+      }]);
+    }
+    setCurrentProduct("");
+  };
+
+  const updateQuantity = (productName, change) => {
+    setSelectedProducts(selectedProducts.map(p => {
+      if (p.name === productName) {
+        const newQuantity = Math.max(1, p.quantity + change);
+        return {...p, quantity: newQuantity};
+      }
+      return p;
+    }));
+  };
+
+  const removeProduct = (productName) => {
+    setSelectedProducts(selectedProducts.filter(p => p.name !== productName));
+  };
+
+  const calculateTotal = () => {
+    return selectedProducts.reduce((total, product) => {
+      return total + (product.numericPrice * product.quantity);
+    }, 0);
+  };
+
+  // Form validation function
+  const isFormValid = () => {
+    return (
+      formData.fullName.trim() !== "" &&
+      formData.phoneNumber.trim() !== "" &&
+      formData.address.trim() !== "" &&
+      formData.state !== "" &&
+      selectedProducts.length > 0 &&
+      formData.deliveryTiming !== ""
+    );
+  };
+
+  const handleInputChange = (field, value) => {
+    setFormData(prev => ({
+      ...prev,
+      [field]: value
+    }));
+  };
+
+  const handleSubmit = () => {
+    if (!isFormValid()) {
+      alert("Please fill in all required fields and select at least one product.");
+      return;
+    }
+    
+    // Submit logic here
+    alert("Order submitted successfully!");
+  };
+
   return (
     <main>
       <section className="mx-auto lg:grid lg:grid-cols-2 lg:gap-20 w-5/6 my-20 lg:my-32 items-center">
@@ -139,29 +222,40 @@ export default function Home() {
         <div className="flex justify-center"><p className="text-2xl font-semibold text-center mb-10 lg:w-3/6">
           FILL THE FORM BELOW TO ORDER FOR THIS SOLAR LIGHT.
         </p></div>
-        <div className="space-y-5">
+        <div id="form" className="space-y-5">
           <div className="lg:flex gap-10 justify-between space-y-5 lg:space-y-0">
             <input
               type="text"
               placeholder="Full Name"
+              value={formData.fullName}
+              onChange={(e) => handleInputChange('fullName', e.target.value)}
               className="block border w-full border-gray-300 rounded-full px-4 py-2 focus:outline-none focus:ring-2 focus:ring-green-600"
+              required
             />
             <input
               type="text"
               placeholder="Phone Number, preferably WhatsApp"
+              value={formData.phoneNumber}
+              onChange={(e) => handleInputChange('phoneNumber', e.target.value)}
               className="block border w-full border-gray-300 rounded-full px-4 py-2 focus:outline-none focus:ring-2 focus:ring-green-600"
+              required
             />
           </div>
           <input
               type="text"
               placeholder="Address (Where you want the product delivered)"
+              value={formData.address}
+              onChange={(e) => handleInputChange('address', e.target.value)}
               className="block border w-full border-gray-300 rounded-full px-4 py-2 focus:outline-none focus:ring-2 focus:ring-green-600"
+              required
             />
 
             {/* State picker */}
             <select
               className="block border lg:w-3/6 w-full border-gray-300 rounded-full px-4 py-2 focus:outline-none focus:ring-2 focus:ring-green-600 bg-white"
-              defaultValue=""
+              value={formData.state}
+              onChange={(e) => handleInputChange('state', e.target.value)}
+              required
             >
               <option value="" disabled>Select the state of delivery address</option>
               <option value="Abia">Abia</option>
@@ -204,11 +298,99 @@ export default function Home() {
             </select>
 
             {/* Select product you need */}
-            
+            <div className="space-y-4">
+              <div className="lg:flex gap-3">
+                <select
+                  className="block border flex-1 border-gray-300 rounded-full px-4 py-2 focus:outline-none focus:ring-2 focus:ring-green-600 bg-white"
+                  value={currentProduct}
+                  onChange={(e) => setCurrentProduct(e.target.value)}
+                >
+                  <option value="">Select product(s) and add to shoplist</option>
+                  {solarProductsData.map((product, index) => (
+                    <option key={index} value={product.name}>
+                      {product.name} - {product.price}
+                    </option>
+                  ))}
+                </select>
+
+                <div className="flex justify-end">
+                  <button
+                    onClick={() => addProduct(currentProduct)}
+                    disabled={!currentProduct}
+                    className="bg-green-800 text-white mt-3 lg:mt-0 px-4 py-1 rounded-full font-semibold hover:bg-green-600 transition disabled:bg-gray-400 disabled:cursor-not-allowed"
+                  >
+                    Add
+                </button></div>
+              </div>
+
+              {/* Selected Products Display */}
+              {selectedProducts.length > 0 && (
+                <div className="mt-6 space-y-4">
+                  <h4 className="font-semibold text-lg">Selected Products:</h4>
+                  
+                  {selectedProducts.map((product, index) => (
+                    <div key={index} className="bg-gray-50 p-4 rounded-lg border">
+                      <div className="flex items-center justify-between">
+                        <div className="flex-1">
+                          <h5 className="font-medium">{product.name}</h5>
+                          <p className="text-gray-600">{product.price} each</p>
+                        </div>
+                        
+                        <div className="flex items-center gap-3">
+                          <button
+                            onClick={() => updateQuantity(product.name, -1)}
+                            className="w-8 h-8 bg-gray-300 rounded-full flex items-center justify-center hover:bg-gray-400 transition"
+                          >
+                            -
+                          </button>
+                          
+                          <span className="mx-3 font-semibold min-w-8 text-center">
+                            {product.quantity}
+                          </span>
+                          
+                          <button
+                            onClick={() => updateQuantity(product.name, 1)}
+                            className="w-8 h-8 bg-green-600 text-white rounded-full flex items-center justify-center hover:bg-green-700 transition"
+                          >
+                            +
+                          </button>
+                          
+                          <button
+                            onClick={() => removeProduct(product.name)}
+                            className="ml-4 text-red-600 hover:text-red-800 font-semibold"
+                          >
+                            Remove
+                          </button>
+                        </div>
+                      </div>
+                      
+                      <div className="mt-2 text-right">
+                        <span className="font-semibold">
+                          Subtotal: ₦{(product.numericPrice * product.quantity).toLocaleString()}
+                        </span>
+                      </div>
+                    </div>
+                  ))}
+                  
+                  {/* Total Amount */}
+                  <div className="bg-green-50 p-4 rounded-lg border-2 border-green-200">
+                    <div className="flex justify-between items-center">
+                      <span className="text-lg font-semibold">Total Amount:</span>
+                      <span className="text-2xl font-bold text-green-800">
+                        ₦{calculateTotal().toLocaleString()}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+
 
             <select
               className="block border lg:w-3/6 w-full border-gray-300 rounded-full px-4 py-2 focus:outline-none focus:ring-2 focus:ring-green-600 bg-white"
-              defaultValue=""
+              value={formData.deliveryTiming}
+              onChange={(e) => handleInputChange('deliveryTiming', e.target.value)}
+              required
             >
               <option value="" disabled>Select delivery timing</option>
               <option value="immediate">Deliver As Soon As Possible</option>
@@ -216,9 +398,19 @@ export default function Home() {
               <option value="next-week">Deliver within 48hours</option>
             </select>
 
-          <div className="flex justify-center mt-12"><button className="bg-green-800 flex gap-1 items-center text-white px-8 py-3 rounded-full w-fit font-semibold hover:bg-green-600 transition">
-            <LuSend/> Submit Order
-          </button></div>
+          <div className="flex justify-center mt-12">
+            <button 
+              onClick={handleSubmit}
+              disabled={!isFormValid()}
+              className={`flex gap-1 items-center text-white px-8 py-3 rounded-full w-fit font-semibold transition ${
+                isFormValid() 
+                  ? 'bg-green-800 hover:bg-green-600 cursor-pointer' 
+                  : 'bg-gray-400 cursor-not-allowed'
+              }`}
+            >
+              <LuSend/> Submit Order
+            </button>
+          </div>
           <p className="text-xs text-red-600 text-center -mt-3">Only click this button if you are ready to place this order!!</p>
         </div>
       </section>
