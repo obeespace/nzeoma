@@ -26,43 +26,54 @@ export default function Home() {
       return;
     }
 
-    // Prepare email data with common EmailJS template variable names
+    // Use EmailJS credentials from environment variables
+    const serviceId = process.env.NEXT_PUBLIC_EMAILJS_SERVICE_ID;
+    const templateId = process.env.NEXT_PUBLIC_EMAILJS_TEMPLATE_ID;
+    const publicKey = process.env.NEXT_PUBLIC_EMAILJS_PUBLIC_KEY;
+
+    console.log("EmailJS Config:", { serviceId, templateId, publicKey });
+
+    // Check if environment variables are loaded
+    if (!serviceId || !templateId || !publicKey) {
+      console.error("EmailJS environment variables not loaded properly");
+      toast.error("Email configuration error. Please try again.");
+      return;
+    }
+
+    // Prepare email data with recipient email
     const emailData = {
+      to_email: "obee.nzeoma@gmail.com", // Replace with your actual business email
+      to_name: "Nzeoma Solar Team",
       user_name: formData.fullName,
-      user_email: formData.phoneNumber, // Using phone as contact info
       user_phone: formData.phoneNumber,
       delivery_address: formData.address,
       delivery_state: formData.state,
       delivery_timing: formData.deliveryTiming,
       message: selectedProducts.map(p => `${p.name} (Quantity: ${p.quantity}) - ${p.price} each`).join('\n'),
-      selected_products: selectedProducts.map(p => `${p.name} (Qty: ${p.quantity}) - ${p.price}`).join('\n'),
       total_amount: `₦${calculateTotal().toLocaleString()}`,
-      // Additional fields with different naming conventions
-      from_name: formData.fullName,
-      phone_number: formData.phoneNumber,
-      full_name: formData.fullName,
-      address: formData.address,
-      state: formData.state,
-      timing: formData.deliveryTiming,
-      products: selectedProducts.map(p => `${p.name} (Qty: ${p.quantity}) - ${p.price}`).join('\n'),
-      total: `₦${calculateTotal().toLocaleString()}`
+      timestamp: new Date().toLocaleString(),
+      order_id: `ORD-${Date.now()}`,
+      product_count: selectedProducts.length.toString(),
+      total_items: selectedProducts.reduce((sum, p) => sum + p.quantity, 0).toString()
     };
 
-    console.log("Sending email with data:", emailData); // Debug log
+    console.log("Sending email with data:", emailData);
+
+    // Initialize EmailJS if not already done
+    emailjs.init(publicKey);
 
     emailjs
       .send(
-        "service_rxkn2tl", 
-        "template_a2kcvvb", 
-        emailData,
-        "E_sBA160DotyE3DqV"
+        serviceId, 
+        templateId, 
+        emailData
       )
       .then(
         (result) => {
-          console.log("EmailJS Success:", result.text);
+          console.log("EmailJS Success:", result);
           toast.success("Order submitted successfully!");
           
-          // Manually reset the form state
+          // Reset the form state
           setFormData({
             fullName: "",
             phoneNumber: "",
@@ -74,8 +85,20 @@ export default function Home() {
           setCurrentProduct("");
         },
         (error) => {
-          console.log("EmailJS Error:", error);
-          toast.error("Failed to send order. Please try again.");
+          console.error("EmailJS Error:", error);
+          console.error("Error status:", error.status);
+          console.error("Error text:", error.text);
+          
+          // Provide more specific error messages
+          if (error.status === 400) {
+            toast.error("Invalid email template. Please check your EmailJS setup.");
+          } else if (error.status === 401) {
+            toast.error("EmailJS authentication failed. Please check your credentials.");
+          } else if (error.status === 402) {
+            toast.error("EmailJS service limit reached. Please check your plan.");
+          } else {
+            toast.error(`Failed to send order: ${error.text || error.message}`);
+          }
         }
       );
   };
@@ -395,13 +418,13 @@ export default function Home() {
                   
                   {selectedProducts.map((product, index) => (
                     <div key={index} className="bg-gray-50 p-4 rounded-lg border">
-                      <div className="flex items-center justify-between">
+                      <div className="lg:flex items-center justify-between">
                         <div className="flex-1">
                           <h5 className="font-medium">{product.name}</h5>
                           <p className="text-gray-600">{product.price} each</p>
                         </div>
                         
-                        <div className="flex items-center gap-3">
+                        <div className="flex items-center mt-5 lg:mt-0 gap-3">
                           <button
                             onClick={() => updateQuantity(product.name, -1)}
                             className="w-8 h-8 bg-gray-300 rounded-full flex items-center justify-center hover:bg-gray-400 transition"
@@ -464,7 +487,8 @@ export default function Home() {
             </select>
 
           <div className="flex justify-center mt-12">
-            <button 
+            <motion.button 
+            whileTap={{ scale: 0.7 }}
               onClick={sendEmail}
               disabled={!isFormValid()}
               className={`flex gap-1 items-center text-white px-8 py-3 rounded-full w-fit font-semibold transition ${
@@ -474,7 +498,7 @@ export default function Home() {
               }`}
             >
               <LuSend/> Submit Order
-            </button>
+            </motion.button>
           </div>
           <p className="text-xs text-red-600 text-center -mt-3">Only click this button if you are ready to place this order!!</p>
         </div>
