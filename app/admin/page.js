@@ -39,6 +39,8 @@ export default function Admin() {
   });
   const [uploadingImage, setUploadingImage] = useState(false);
   const [imagePreview, setImagePreview] = useState('');
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [productToDelete, setProductToDelete] = useState(null);
 
   useEffect(() => {
     loadProducts();
@@ -67,7 +69,6 @@ export default function Admin() {
   };
 
   const handleAddProduct = () => {
-    console.log('Add product clicked');
     setEditingProduct(null);
     setCurrentProduct({
       name: '',
@@ -80,7 +81,6 @@ export default function Admin() {
   };
 
   const handleEditProduct = (product) => {
-    console.log('Edit product clicked:', product);
     setEditingProduct(product);
     // Ensure price has naira symbol when editing
     const formattedProduct = {
@@ -153,7 +153,6 @@ export default function Admin() {
   };
 
   const handleCloseModal = () => {
-    console.log('Close modal clicked');
     setShowModal(false);
     setImagePreview('');
     setCurrentProduct({
@@ -166,15 +165,25 @@ export default function Admin() {
   };
 
   const handleDeleteProduct = (id, name) => {
-    if (window.confirm(`Are you sure you want to delete "${name}"?`)) {
-      try {
-        deleteProduct(id);
-        toast.success('Product deleted successfully!');
-        loadProducts();
-      } catch (error) {
-        toast.error('Failed to delete product');
-      }
+    setProductToDelete({ id, name });
+    setShowDeleteModal(true);
+  };
+
+  const confirmDeleteProduct = () => {
+    try {
+      deleteProduct(productToDelete.id);
+      toast.success('Product deleted successfully!');
+      loadProducts();
+      setShowDeleteModal(false);
+      setProductToDelete(null);
+    } catch (error) {
+      toast.error('Failed to delete product');
     }
+  };
+
+  const cancelDelete = () => {
+    setShowDeleteModal(false);
+    setProductToDelete(null);
   };
 
   const formatPrice = (price) => {
@@ -184,7 +193,7 @@ export default function Admin() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 p-4">
+    <div className="min-h-screen bg-gray-50 p-3 lg:p-4">
       <Toaster position="top-right" />
       
       {/* Header */}
@@ -342,7 +351,6 @@ export default function Admin() {
             className="bg-white rounded-xl p-4 lg:p-6 w-full max-w-sm lg:max-w-lg max-h-[90vh] overflow-y-auto"
             onClick={(e) => e.stopPropagation()}
           >
-            {console.log('Modal rendering, showModal:', showModal, 'editingProduct:', editingProduct)}
             <div className="flex justify-between items-center mb-4 lg:mb-6">
               <h2 className="text-lg lg:text-2xl font-bold text-gray-800">
                 {editingProduct ? '✏️ Edit Product' : '➕ Add Product'}
@@ -424,18 +432,18 @@ export default function Admin() {
                 )}
                 
                 {/* Upload Button */}
-                <div className="flex gap-3">
-                  <label className="group relative overflow-hidden bg-green-800 text-white px-6 py-3 rounded-xl cursor-pointer shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 hover:bg-green-600 transition-all duration-200 font-semibold">
-                    <div className="flex items-center gap-2">
+                <div className="flex flex-col sm:flex-row gap-3">
+                  <label className="group bg-green-800 text-white px-4 lg:px-6 py-3 rounded-xl cursor-pointer shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 hover:bg-green-600 transition-all duration-200 font-semibold text-center">
+                    <div className="flex items-center justify-center gap-2">
                       {uploadingImage ? (
                         <>
                           <div className="animate-spin rounded-full h-5 w-5 border-2 border-white border-t-transparent"></div>
-                          Uploading...
+                          <span className="text-sm lg:text-base">Uploading...</span>
                         </>
                       ) : (
                         <>
                           <span className="text-lg">📁</span>
-                          Upload Image
+                          <span className="text-sm lg:text-base">Upload Image</span>
                         </>
                       )}
                     </div>
@@ -455,11 +463,11 @@ export default function Admin() {
                         setImagePreview('');
                         setCurrentProduct({...currentProduct, image: ''});
                       }}
-                      className="group bg-gray-200 text-gray-700 px-6 py-3 rounded-xl shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 hover:bg-red-100 hover:text-red-700 transition-all duration-200 font-semibold border border-gray-300 hover:border-red-300"
+                      className="group bg-gray-200 text-gray-700 px-4 lg:px-6 py-3 rounded-xl shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 hover:bg-red-100 hover:text-red-700 transition-all duration-200 font-semibold border border-gray-300 hover:border-red-300"
                     >
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center justify-center gap-2">
                         <FiTrash2 className="group-hover:scale-110 transition-transform duration-200" />
-                        Remove
+                        <span className="text-sm lg:text-base">Remove</span>
                       </div>
                     </button>
                   )}
@@ -494,6 +502,67 @@ export default function Admin() {
                   Cancel
                 </div>
               </button>
+            </div>
+          </motion.div>
+        </div>
+      )}
+
+      {/* Delete Confirmation Modal */}
+      {showDeleteModal && (
+        <div 
+          className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50"
+          onClick={(e) => {
+            if (e.target === e.currentTarget) {
+              cancelDelete();
+            }
+          }}
+        >
+          <motion.div
+            initial={{ scale: 0.9, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            className="bg-white rounded-xl p-4 lg:p-6 w-full max-w-sm lg:max-w-md"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="text-center">
+              {/* Warning Icon */}
+              <div className="mx-auto flex items-center justify-center h-16 w-16 rounded-full bg-red-100 mb-4">
+                <FiTrash2 className="h-8 w-8 text-red-600" />
+              </div>
+              
+              {/* Title */}
+              <h3 className="text-lg lg:text-xl font-bold text-gray-900 mb-2">
+                Delete Product
+              </h3>
+              
+              {/* Message */}
+              <p className="text-sm lg:text-base text-gray-600 mb-6">
+                Are you sure you want to delete <strong>"{productToDelete?.name}"</strong>? 
+                This action cannot be undone.
+              </p>
+              
+              {/* Action Buttons */}
+              <div className="flex flex-col sm:flex-row gap-3 justify-center">
+                <button
+                  type="button"
+                  onClick={confirmDeleteProduct}
+                  className="group bg-red-600 text-white py-3 px-6 rounded-xl shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 hover:bg-red-700 transition-all duration-200 font-semibold"
+                >
+                  <div className="flex items-center justify-center gap-2">
+                    <FiTrash2 className="group-hover:scale-110 transition-transform duration-200" />
+                    Yes, Delete
+                  </div>
+                </button>
+                <button
+                  type="button"
+                  onClick={cancelDelete}
+                  className="group bg-gray-200 text-gray-700 py-3 px-6 rounded-xl shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 hover:bg-gray-300 transition-all duration-200 font-semibold border border-gray-300 hover:border-gray-400"
+                >
+                  <div className="flex items-center justify-center gap-2">
+                    <FiX className="group-hover:rotate-90 transition-transform duration-200" />
+                    Cancel
+                  </div>
+                </button>
+              </div>
             </div>
           </motion.div>
         </div>
