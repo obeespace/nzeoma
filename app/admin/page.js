@@ -18,14 +18,20 @@ import {
   FiSearch, 
   FiSave, 
   FiX,
-  FiEye 
+  FiEye,
+  FiLogOut 
 } from 'react-icons/fi';
 import { Toaster, toast } from 'sonner';
 import Image from 'next/image';
 
 import Link from 'next/link';
+import { isAuthenticated, logout, getAuthUser, refreshSession } from '../component/auth';
+import LoginForm from '../component/LoginForm';
 
 export default function Admin() {
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [isCheckingAuth, setIsCheckingAuth] = useState(true);
+  const [user, setUser] = useState(null);
   const [products, setProducts] = useState([]);
   const [filteredProducts, setFilteredProducts] = useState([]);
   const [searchTerm, setSearchTerm] = useState('');
@@ -42,9 +48,26 @@ export default function Admin() {
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [productToDelete, setProductToDelete] = useState(null);
 
+  // Check authentication on component mount
   useEffect(() => {
-    loadProducts();
+    const checkAuth = () => {
+      if (isAuthenticated()) {
+        const authUser = getAuthUser();
+        setUser(authUser);
+        setIsLoggedIn(true);
+        refreshSession(); // Refresh session timestamp
+      }
+      setIsCheckingAuth(false);
+    };
+
+    checkAuth();
   }, []);
+
+  useEffect(() => {
+    if (isLoggedIn) {
+      loadProducts();
+    }
+  }, [isLoggedIn]);
 
   useEffect(() => {
     if (searchTerm) {
@@ -53,6 +76,19 @@ export default function Admin() {
       setFilteredProducts(products);
     }
   }, [searchTerm, products]);
+
+  const handleLoginSuccess = () => {
+    const authUser = getAuthUser();
+    setUser(authUser);
+    setIsLoggedIn(true);
+  };
+
+  const handleLogout = () => {
+    logout();
+    setIsLoggedIn(false);
+    setUser(null);
+    toast.success('Logged out successfully!');
+  };
 
   const loadProducts = () => {
     try {
@@ -192,6 +228,23 @@ export default function Admin() {
     return `₦${parseInt(numericPrice).toLocaleString()}`;
   };
 
+  // Show loading screen while checking authentication
+  if (isCheckingAuth) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-4 border-green-800 border-t-transparent mx-auto mb-4"></div>
+          <p className="text-gray-600">Checking authentication...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Show login form if not authenticated
+  if (!isLoggedIn) {
+    return <LoginForm onLoginSuccess={handleLoginSuccess} />;
+  }
+
   return (
     <div className="min-h-screen bg-gray-50 p-3 lg:p-4">
       <Toaster position="top-right" />
@@ -207,19 +260,30 @@ export default function Admin() {
                 Back
               </button>
             </Link>
-            <button
-              onClick={handleAddProduct}
-              className="group bg-green-800 text-white px-4 py-2 rounded-lg shadow-md hover:shadow-lg transform hover:-translate-y-0.5 hover:bg-green-600 transition-all duration-200 font-semibold text-sm"
-            >
-              <div className="flex items-center gap-1">
-                <FiPlus className="text-base group-hover:rotate-90 transition-transform duration-200" />
-                Add
-              </div>
-            </button>
+            <div className="flex gap-2">
+              <button
+                onClick={handleAddProduct}
+                className="group bg-green-800 text-white px-4 py-2 rounded-lg shadow-md hover:shadow-lg transform hover:-translate-y-0.5 hover:bg-green-600 transition-all duration-200 font-semibold text-sm"
+              >
+                <div className="flex items-center gap-1">
+                  <FiPlus className="text-base group-hover:rotate-90 transition-transform duration-200" />
+                  Add
+                </div>
+              </button>
+              <button
+                onClick={handleLogout}
+                className="group bg-gray-200 text-gray-700 px-3 py-2 rounded-lg shadow-md hover:shadow-lg transform hover:-translate-y-0.5 hover:bg-red-100 hover:text-red-700 transition-all duration-200 font-semibold border border-gray-300 hover:border-red-300 text-sm"
+              >
+                <FiLogOut className="text-base group-hover:scale-110 transition-transform duration-200" />
+              </button>
+            </div>
           </div>
-          <h1 className="text-xl font-bold text-center text-green-800 mb-4">
-            🔆 Admin Panel
-          </h1>
+          <div className="text-center mb-3">
+            <h1 className="text-xl font-bold text-green-800 mb-1">
+              🔆 Admin Panel
+            </h1>
+            
+          </div>
         </div>
 
         {/* Desktop Header */}
@@ -234,6 +298,7 @@ export default function Admin() {
             <h1 className="text-3xl font-bold text-green-800">
               🔆 Nzeoma Solar - Admin Panel
             </h1>
+            
           </div>
           <div className="flex gap-3">
             <button
@@ -243,6 +308,15 @@ export default function Admin() {
               <div className="flex items-center gap-2">
                 <FiPlus className="text-lg group-hover:rotate-90 transition-transform duration-200" />
                 Add Product
+              </div>
+            </button>
+            <button
+              onClick={handleLogout}
+              className="group bg-gray-200 text-gray-700 px-6 py-3 rounded-xl shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 hover:bg-red-100 hover:text-red-700 transition-all duration-200 font-semibold border border-gray-300 hover:border-red-300"
+            >
+              <div className="flex items-center gap-2">
+                <FiLogOut className="text-lg group-hover:scale-110 transition-transform duration-200" />
+                Logout
               </div>
             </button>
           </div>
