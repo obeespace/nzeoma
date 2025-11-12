@@ -268,7 +268,7 @@ export default function Admin() {
       </div>
 
       {/* Products Grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 lg:gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 lg:gap-6">
         {filteredProducts.map((product) => (
           <motion.div
             key={product.id}
@@ -277,7 +277,7 @@ export default function Admin() {
             className="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow"
           >
             {/* Product Image */}
-            <div className="h-48 bg-gray-200 relative">
+            <div className="h-96 lg:h-52 bg-gray-200 relative">
               {product.image && (
                 <Image
                   src={product.image}
@@ -289,17 +289,17 @@ export default function Admin() {
                   }}
                 />
               )}
-              <div className="absolute top-2 right-2 bg-green-600 text-white px-2 py-1 rounded text-sm font-semibold">
+              <div className="absolute top-3 right-3 bg-green-600 text-white px-3 py-1.5 rounded-lg text-sm font-semibold shadow-lg">
                 {product.price}
               </div>
             </div>
 
             {/* Product Details */}
-            <div className="p-4">
-              <h3 className="font-semibold text-gray-800 mb-2 line-clamp-2">
+            <div className="p-3 sm:p-4">
+              <h3 className="font-semibold text-gray-800 mb-2 text-base sm:text-sm lg:text-base line-clamp-2">
                 {product.name}
               </h3>
-              <p className="text-sm text-gray-600 mb-4">
+              <p className="text-xs sm:text-sm text-gray-600 mb-3 sm:mb-4">
                 ID: {product.id}
               </p>
 
@@ -307,17 +307,17 @@ export default function Admin() {
               <div className="flex gap-2">
                 <button
                   onClick={() => handleEditProduct(product)}
-                  className="group flex-1 bg-green-800 text-white py-2.5 px-4 rounded-lg flex items-center justify-center gap-2 hover:bg-green-600 hover:shadow-lg transform hover:-translate-y-0.5 transition-all duration-200 font-medium"
+                  className="group flex-1 bg-green-800 text-white py-2.5 px-3 sm:px-4 rounded-lg flex items-center justify-center gap-1.5 sm:gap-2 hover:bg-green-600 hover:shadow-lg transform hover:-translate-y-0.5 transition-all duration-200 font-medium text-sm sm:text-base"
                 >
-                  <FiEdit2 size={16} className="group-hover:rotate-12 transition-transform duration-200" />
-                  Edit
+                  <FiEdit2 size={14} className="sm:w-4 sm:h-4 group-hover:rotate-12 transition-transform duration-200" />
+                  <span>Edit</span>
                 </button>
                 <button
                   onClick={() => handleDeleteProduct(product.id, product.name)}
-                  className="group flex-1 bg-gray-200 text-gray-700 py-2.5 px-4 rounded-lg flex items-center justify-center gap-2 hover:bg-red-100 hover:text-red-700 hover:shadow-lg transform hover:-translate-y-0.5 transition-all duration-200 font-medium border border-gray-300 hover:border-red-300"
+                  className="group flex-1 bg-gray-200 text-gray-700 py-2.5 px-3 sm:px-4 rounded-lg flex items-center justify-center gap-1.5 sm:gap-2 hover:bg-red-100 hover:text-red-700 hover:shadow-lg transform hover:-translate-y-0.5 transition-all duration-200 font-medium border border-gray-300 hover:border-red-300 text-sm sm:text-base"
                 >
-                  <FiTrash2 size={16} className="group-hover:scale-110 transition-transform duration-200" />
-                  Delete
+                  <FiTrash2 size={14} className="sm:w-4 sm:h-4 group-hover:scale-110 transition-transform duration-200" />
+                  <span>Delete</span>
                 </button>
               </div>
             </div>
