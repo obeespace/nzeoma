@@ -10,13 +10,19 @@ import solarlanding from "../public/landing.jpg";
 import emailjs from "@emailjs/browser";
 import { FaWhatsapp } from "react-icons/fa";
 import Goods from "./component/Goods";
-import { solarProductsData } from "./component/data";
+import { getSolarProductsData } from "./component/data";
 import Link from "next/link";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 
 export default function Home() {
   const [selectedProducts, setSelectedProducts] = useState([]);
   const [currentProduct, setCurrentProduct] = useState("");
+  const [solarProductsData, setSolarProductsData] = useState([]);
+
+  useEffect(() => {
+    // Load products data on component mount
+    setSolarProductsData(getSolarProductsData());
+  }, []);
 
   const sendEmail = (e) => {
     e.preventDefault();
@@ -185,6 +191,7 @@ export default function Home() {
   return (
     <main>
       <Toaster position="top-right" />
+      
       <section className="mx-auto lg:grid lg:grid-cols-2 lg:gap-20 w-5/6 my-20 lg:my-32 items-center">
         <div>
           <h1 className="font-black text-4xl">

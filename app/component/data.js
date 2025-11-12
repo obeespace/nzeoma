@@ -24,7 +24,8 @@ import ip65MetallicCasing from "../../public/IP65 with Metallic Casing.jpg";
 import multipleLensCameraLight from "../../public/Multiple lens Solar camera street light.jpg";
 import singleLensCameraLight from "../../public/Single Lens Camera Solar Street Light.jpg";
 
-export const solarProductsData = [
+// Default products data
+const defaultSolarProductsData = [
   {
     "image": fexSolar200watts,
     "name": "Fex Solar Light 200watts",
@@ -176,3 +177,22 @@ export const solarProductsData = [
     "alt": "Single Lens Camera Solar Street Light"
   }
 ];
+
+// Function to get products data - checks localStorage first, falls back to default
+export const getSolarProductsData = () => {
+  if (typeof window !== 'undefined') {
+    try {
+      const stored = localStorage.getItem('nzeoma_products');
+      if (stored) {
+        return JSON.parse(stored);
+      }
+    } catch (error) {
+      console.warn('Error reading from localStorage:', error);
+    }
+  }
+  return defaultSolarProductsData;
+};
+
+// Export both for compatibility
+export const solarProductsData = defaultSolarProductsData;
+export { defaultSolarProductsData };
