@@ -2,21 +2,31 @@
 const AUTH_KEY = 'nzeoma_admin_auth';
 const SESSION_DURATION = 24 * 60 * 60 * 1000; // 24 hours in milliseconds
 
-// Get admin credentials from environment variables
+// Get admin credentials from environment variables with fallback
 const getCredentialsFromEnv = () => {
+  const envUsername = process.env.NEXT_PUBLIC_ADMIN_USERNAME;
+  const envPassword = process.env.NEXT_PUBLIC_ADMIN_PASSWORD;
+  
+  // Debug logging
+  console.log('Environment variables loaded:', {
+    username: envUsername ? 'SET' : 'NOT SET',
+    password: envPassword ? 'SET' : 'NOT SET'
+  });
+  
   return {
-    username: process.env.NEXT_PUBLIC_ADMIN_USERNAME,
-    password: process.env.NEXT_PUBLIC_ADMIN_PASSWORD
+    username: envUsername || 'nzeoma_admin', // fallback
+    password: envPassword || 'MarketGood25'  // fallback
   };
 };
 
 export const login = (username, password) => {
   const credentials = getCredentialsFromEnv();
   
-  // Check if environment variables are set
-  if (!credentials.username || !credentials.password) {
-    return { success: false, error: 'Admin credentials not configured. Please check environment variables.' };
-  }
+  console.log('Login attempt with:', { username });
+  console.log('Expected credentials:', { 
+    username: credentials.username,
+    passwordLength: credentials.password?.length 
+  });
   
   if (username === credentials.username && password === credentials.password) {
     const authData = {
@@ -25,8 +35,11 @@ export const login = (username, password) => {
       username: username
     };
     localStorage.setItem(AUTH_KEY, JSON.stringify(authData));
+    console.log('Login successful');
     return { success: true };
   }
+  
+  console.log('Login failed - credentials do not match');
   return { success: false, error: 'Invalid username or password' };
 };
 
