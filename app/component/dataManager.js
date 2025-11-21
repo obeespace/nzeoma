@@ -1,9 +1,67 @@
-// Data management utility using localStorage
+// Data management utility with API support
 import { solarProductsData } from './data';
 
 const STORAGE_KEY = 'nzeoma_products';
+const API_BASE = '/api/products';
 
-// Helper function to convert file to base64
+// Check if we're in production (Vercel)
+const isProduction = process.env.NODE_ENV === 'production';
+
+// API-first data operations
+export const getSolarProductsData = async () => {
+  if (isProduction) {
+    try {
+      const response = await fetch(API_BASE);
+      if (response.ok) {
+        const apiProducts = await response.json();
+        // If API returns data, use it; otherwise fall back to default
+        return apiProducts.length > 0 ? apiProducts : solarProductsData;
+      }
+    } catch (error) {
+      console.log('API not available, using localStorage fallback');
+    }
+  }
+  
+  // Fallback to localStorage for development
+  const stored = localStorage.getItem(STORAGE_KEY);
+  if (stored) {
+    try {
+      const parsedProducts = JSON.parse(stored);
+      return parsedProducts.length > 0 ? parsedProducts : solarProductsData;
+    } catch (error) {
+      console.error('Error parsing stored products:', error);
+    }
+  }
+  
+  return solarProductsData;
+};
+
+export const saveProductsData = async (products) => {
+  if (isProduction) {
+    try {
+      // In production, save to API/file system
+      const response = await fetch('/api/sync-products', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ products })
+      });
+      if (response.ok) {
+        return true;
+      }
+    } catch (error) {
+      console.error('Failed to sync to API:', error);
+    }
+  }
+  
+  // Fallback to localStorage
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(products));
+    return true;
+  } catch (error) {
+    console.error('Failed to save to localStorage:', error);
+    return false;
+  }
+};
 export const fileToBase64 = (file) => {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
