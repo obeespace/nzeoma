@@ -1,81 +1,96 @@
 import { NextResponse } from 'next/server';
-import fs from 'fs';
-import path from 'path';
+import { ProductController } from '../../../lib/controllers/productController';
 
-const DATA_FILE = path.join(process.cwd(), 'data', 'products.json');
-
-// Ensure data directory exists
-const ensureDataDir = () => {
-  const dataDir = path.dirname(DATA_FILE);
-  if (!fs.existsSync(dataDir)) {
-    fs.mkdirSync(dataDir, { recursive: true });
-  }
-};
-
-// Read products from JSON file
-const readProducts = () => {
+// GET /api/products - Fetch all products with optional filters
+export async function GET(request) {
   try {
-    ensureDataDir();
-    if (!fs.existsSync(DATA_FILE)) {
-      // Initialize with default products if file doesn't exist
-      const defaultProducts = [];
-      fs.writeFileSync(DATA_FILE, JSON.stringify(defaultProducts, null, 2));
-      return defaultProducts;
+    const { searchParams } = new URL(request.url);
+    
+    // Extract query parameters
+    const filters = {
+      category: searchParams.get('category'),
+      inStock: searchParams.get('inStock') === 'true' ? true : searchParams.get('inStock') === 'false' ? false : undefined,
+      minWattage: searchParams.get('minWattage') ? parseInt(searchParams.get('minWattage')) : undefined,
+      maxWattage: searchParams.get('maxWattage') ? parseInt(searchParams.get('maxWattage')) : undefined,
+      sortBy: searchParams.get('sortBy'),
+      limit: searchParams.get('limit') ? parseInt(searchParams.get('limit')) : 100,
+      skip: searchParams.get('skip') ? parseInt(searchParams.get('skip')) : 0
+    };
+    
+    // Remove undefined values
+    Object.keys(filters).forEach(key => 
+      filters[key] === undefined && delete filters[key]
+    );
+    
+    const result = await ProductController.getAllProducts(filters);
+    
+    if (!result.success) {
+      return NextResponse.json(
+        { error: result.error },
+        { status: 500 }
+      );
     }
-    const data = fs.readFileSync(DATA_FILE, 'utf8');
-    return JSON.parse(data);
+    
+    // Set cache headers for better performance
+    const response = NextResponse.json(result.data);
+    response.headers.set('Cache-Control', 's-maxage=60, stale-while-revalidate=300');
+    response.headers.set('X-Total-Count', result.total.toString());
+    
+    return response;
   } catch (error) {
-    console.error('Error reading products:', error);
-    return [];
-  }
-};
-
-// Write products to JSON file
-const writeProducts = (products) => {
-  try {
-    ensureDataDir();
-    fs.writeFileSync(DATA_FILE, JSON.stringify(products, null, 2));
-    return true;
-  } catch (error) {
-    console.error('Error writing products:', error);
-    return false;
-  }
-};
-
-// GET - Fetch all products
-export async function GET() {
-  try {
-    const products = readProducts();
-    return NextResponse.json(products);
-  } catch (error) {
+    console.error('Products API GET error:', error);
     return NextResponse.json(
-      { error: 'Failed to fetch products' },
+      { error: 'Internal server error', details: error.message },
       { status: 500 }
     );
   }
 }
 
-// POST - Add new product
+// POST /api/products - Create new product
 export async function POST(request) {
   try {
-    const newProduct = await request.json();
-    const products = readProducts();
+    const productData = await request.json();
     
-    // Add ID if not present
-    if (!newProduct.id) {
-      newProduct.id = Date.now().toString();
+    // Validate request body exists
+    if (!productData || Object.keys(productData).length === 0) {
+      return NextResponse.json(
+        { error: 'Request body is required' },
+        { status: 400 }
+      );
     }
     
-    products.push(newProduct);
+    const result = await ProductController.createProduct(productData);
     
-    if (writeProducts(products)) {
-      return NextResponse.json(newProduct, { status: 201 });
-    } else {
-      throw new Error('Failed to save product');
+    if (!result.success) {
+      return NextResponse.json(
+        { 
+          error: result.error,
+          details: result.details || undefined
+        },
+        { status: result.statusCode || 500 }
+      );
     }
-  } catch (error) {
+    
     return NextResponse.json(
-      { error: 'Failed to add product' },
+      {
+        message: 'Product created successfully',
+        product: result.data
+      },
+      { status: result.statusCode || 201 }
+    );
+  } catch (error) {
+    console.error('Products API POST error:', error);
+    
+    // Handle JSON parsing errors
+    if (error instanceof SyntaxError) {
+      return NextResponse.json(
+        { error: 'Invalid JSON in request body' },
+        { status: 400 }
+      );
+    }
+    
+    return NextResponse.json(
+      { error: 'Internal server error', details: error.message },
       { status: 500 }
     );
   }

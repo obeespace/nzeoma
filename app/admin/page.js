@@ -1,13 +1,8 @@
 "use client";
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
+import ProductDataManager from '../../lib/dataManager';
 import { 
-  getAllProducts, 
-  addProduct, 
-  updateProduct, 
-  deleteProduct, 
-  searchProducts, 
-  initializeData,
   fileToBase64,
   compressImage
 } from '../component/dataManager';
@@ -71,7 +66,12 @@ export default function Admin() {
 
   useEffect(() => {
     if (searchTerm) {
-      setFilteredProducts(searchProducts(searchTerm));
+      // Filter products locally for now
+      const filtered = products.filter(product => 
+        product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (product.description && product.description.toLowerCase().includes(searchTerm.toLowerCase()))
+      );
+      setFilteredProducts(filtered);
     } else {
       setFilteredProducts(products);
     }
@@ -90,17 +90,15 @@ export default function Admin() {
     toast.success('Logged out successfully!');
   };
 
-  const loadProducts = () => {
+  const loadProducts = async () => {
     try {
-      const data = getAllProducts();
+      const data = await ProductDataManager.getAllProducts();
       setProducts(data);
       setFilteredProducts(data);
     } catch (error) {
-      // If localStorage fails, use default data
-      initializeData();
-      const data = getAllProducts();
-      setProducts(data);
-      setFilteredProducts(data);
+      console.error('Failed to load products:', error);
+      setProducts([]);
+      setFilteredProducts([]);
     }
   };
 
@@ -167,24 +165,40 @@ export default function Admin() {
     }
   };
 
-  const handleSaveProduct = () => {
+  const handleSaveProduct = async () => {
+    // Validate required fields
     if (!currentProduct.name || !currentProduct.price) {
-      toast.error('Please fill in all required fields');
+      toast.error('Please fill in product name and price');
+      return;
+    }
+    
+    if (!currentProduct.alt) {
+      toast.error('Please fill in alt text for accessibility');
+      return;
+    }
+    
+    if (!currentProduct.image) {
+      toast.error('Please upload a product image');
       return;
     }
 
+    console.log('Saving product:', currentProduct); // Debug log
+
     try {
       if (editingProduct) {
-        updateProduct(editingProduct.id, currentProduct);
+        const result = await ProductDataManager.updateProduct(editingProduct._id, currentProduct);
+        console.log('Update result:', result);
         toast.success('Product updated successfully!');
       } else {
-        addProduct(currentProduct);
+        const result = await ProductDataManager.createProduct(currentProduct);
+        console.log('Create result:', result);
         toast.success('Product added successfully!');
       }
-      loadProducts();
+      await loadProducts();
       handleCloseModal();
     } catch (error) {
-      toast.error('Failed to save product');
+      console.error('Save error details:', error);
+      toast.error(`Failed to save product: ${error.message}`);
     }
   };
 
@@ -205,15 +219,16 @@ export default function Admin() {
     setShowDeleteModal(true);
   };
 
-  const confirmDeleteProduct = () => {
+  const confirmDeleteProduct = async () => {
     try {
-      deleteProduct(productToDelete.id);
+      await ProductDataManager.deleteProduct(productToDelete.id);
       toast.success('Product deleted successfully!');
-      loadProducts();
+      await loadProducts();
       setShowDeleteModal(false);
       setProductToDelete(null);
     } catch (error) {
       toast.error('Failed to delete product');
+      console.error('Delete error:', error);
     }
   };
 
@@ -345,7 +360,7 @@ export default function Admin() {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 lg:gap-6">
         {filteredProducts.map((product) => (
           <motion.div
-            key={product.id}
+            key={product._id || product.id}
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             className="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow"
@@ -387,7 +402,7 @@ export default function Admin() {
                   <span>Edit</span>
                 </button>
                 <button
-                  onClick={() => handleDeleteProduct(product.id, product.name)}
+                  onClick={() => handleDeleteProduct(product._id, product.name)}
                   className="group flex-1 bg-gray-200 text-gray-700 py-2.5 px-3 sm:px-4 rounded-lg flex items-center justify-center gap-1.5 sm:gap-2 hover:bg-red-100 hover:text-red-700 hover:shadow-lg transform hover:-translate-y-0.5 transition-all duration-200 font-medium border border-gray-300 hover:border-red-300 text-sm sm:text-base"
                 >
                   <FiTrash2 size={14} className="sm:w-4 sm:h-4 group-hover:scale-110 transition-transform duration-200" />
@@ -558,7 +573,7 @@ export default function Admin() {
               <button
                 type="button"
                 onClick={handleSaveProduct}
-                disabled={!currentProduct.name || !currentProduct.price}
+                disabled={!currentProduct.name || !currentProduct.price || !currentProduct.alt || !currentProduct.image}
                 className="group flex-1 bg-green-800 text-white py-3 px-4 lg:px-6 rounded-xl shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 hover:bg-green-600 transition-all duration-200 font-semibold disabled:bg-gray-400 disabled:cursor-not-allowed disabled:transform-none disabled:shadow-none"
               >
                 <div className="flex items-center justify-center gap-2">

@@ -1,89 +1,121 @@
 import { NextResponse } from 'next/server';
-import fs from 'fs';
-import path from 'path';
+import { ProductController } from '../../../../lib/controllers/productController';
 
-const DATA_FILE = path.join(process.cwd(), 'data', 'products.json');
-
-const readProducts = () => {
+// GET /api/products/[id] - Get single product by ID
+export async function GET(request, { params }) {
   try {
-    if (!fs.existsSync(DATA_FILE)) {
-      return [];
-    }
-    const data = fs.readFileSync(DATA_FILE, 'utf8');
-    return JSON.parse(data);
-  } catch (error) {
-    console.error('Error reading products:', error);
-    return [];
-  }
-};
-
-const writeProducts = (products) => {
-  try {
-    const dataDir = path.dirname(DATA_FILE);
-    if (!fs.existsSync(dataDir)) {
-      fs.mkdirSync(dataDir, { recursive: true });
-    }
-    fs.writeFileSync(DATA_FILE, JSON.stringify(products, null, 2));
-    return true;
-  } catch (error) {
-    console.error('Error writing products:', error);
-    return false;
-  }
-};
-
-// PUT - Update product
-export async function PUT(request, { params }) {
-  try {
-    const { id } = params;
-    const updatedProduct = await request.json();
-    const products = readProducts();
+    const { id } = await params;
     
-    const index = products.findIndex(p => p.id === id);
-    if (index === -1) {
+    if (!id) {
       return NextResponse.json(
-        { error: 'Product not found' },
-        { status: 404 }
+        { error: 'Product ID is required' },
+        { status: 400 }
       );
     }
     
-    products[index] = { ...products[index], ...updatedProduct, id };
+    const result = await ProductController.getProductById(id);
     
-    if (writeProducts(products)) {
-      return NextResponse.json(products[index]);
-    } else {
-      throw new Error('Failed to update product');
+    if (!result.success) {
+      return NextResponse.json(
+        { error: result.error },
+        { status: result.statusCode || 500 }
+      );
     }
+    
+    return NextResponse.json(result.data);
   } catch (error) {
+    console.error('Product GET error:', error);
     return NextResponse.json(
-      { error: 'Failed to update product' },
+      { error: 'Internal server error', details: error.message },
       { status: 500 }
     );
   }
 }
 
-// DELETE - Remove product
-export async function DELETE(request, { params }) {
+// PUT /api/products/[id] - Update product
+export async function PUT(request, { params }) {
   try {
-    const { id } = params;
-    const products = readProducts();
+    const { id } = await params;
     
-    const filteredProducts = products.filter(p => p.id !== id);
-    
-    if (filteredProducts.length === products.length) {
+    if (!id) {
       return NextResponse.json(
-        { error: 'Product not found' },
-        { status: 404 }
+        { error: 'Product ID is required' },
+        { status: 400 }
       );
     }
     
-    if (writeProducts(filteredProducts)) {
-      return NextResponse.json({ success: true });
-    } else {
-      throw new Error('Failed to delete product');
+    const updateData = await request.json();
+    
+    if (!updateData || Object.keys(updateData).length === 0) {
+      return NextResponse.json(
+        { error: 'Update data is required' },
+        { status: 400 }
+      );
     }
+    
+    const result = await ProductController.updateProduct(id, updateData);
+    
+    if (!result.success) {
+      return NextResponse.json(
+        { 
+          error: result.error,
+          details: result.details || undefined
+        },
+        { status: result.statusCode || 500 }
+      );
+    }
+    
+    return NextResponse.json({
+      message: 'Product updated successfully',
+      product: result.data
+    });
   } catch (error) {
+    console.error('Product PUT error:', error);
+    
+    if (error instanceof SyntaxError) {
+      return NextResponse.json(
+        { error: 'Invalid JSON in request body' },
+        { status: 400 }
+      );
+    }
+    
     return NextResponse.json(
-      { error: 'Failed to delete product' },
+      { error: 'Internal server error', details: error.message },
+      { status: 500 }
+    );
+  }
+}
+
+// DELETE /api/products/[id] - Delete product
+export async function DELETE(request, { params }) {
+  try {
+    const { id } = await params;
+    
+    if (!id) {
+      return NextResponse.json(
+        { error: 'Product ID is required' },
+        { status: 400 }
+      );
+    }
+    
+    const result = await ProductController.deleteProduct(id);
+    
+    if (!result.success) {
+      return NextResponse.json(
+        { error: result.error },
+        { status: result.statusCode || 500 }
+      );
+    }
+    
+    return NextResponse.json({
+      message: 'Product deleted successfully',
+      deletedId: result.data.deletedId,
+      deletedCount: result.data.deletedCount
+    });
+  } catch (error) {
+    console.error('Product DELETE error:', error);
+    return NextResponse.json(
+      { error: 'Internal server error', details: error.message },
       { status: 500 }
     );
   }

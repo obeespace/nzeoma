@@ -10,18 +10,36 @@ import solarlanding from "../public/landing.jpg";
 import emailjs from "@emailjs/browser";
 import { FaWhatsapp } from "react-icons/fa";
 import Goods from "./component/Goods";
-import { getSolarProductsData } from "./component/data";
 import Link from "next/link";
 import { useState, useEffect } from "react";
+import ProductDataManager from "../lib/dataManager";
 
 export default function Home() {
   const [selectedProducts, setSelectedProducts] = useState([]);
   const [currentProduct, setCurrentProduct] = useState("");
   const [solarProductsData, setSolarProductsData] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
   useEffect(() => {
-    // Load products data on component mount
-    setSolarProductsData(getSolarProductsData());
+    // Load products data from new MongoDB API
+    const fetchProducts = async () => {
+      try {
+        setLoading(true);
+        setError(null);
+        const products = await ProductDataManager.getAllProducts();
+        setSolarProductsData(products);
+        console.log(`📦 Loaded ${products.length} products from MongoDB`);
+      } catch (error) {
+        console.error('❌ Failed to load products:', error);
+        setError(error.message);
+        setSolarProductsData([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+    
+    fetchProducts();
   }, []);
 
   const sendEmail = (e) => {
@@ -232,9 +250,35 @@ export default function Home() {
           </p>
         </div>
         <div className="grid grid-cols-1 md:grid-cols-2 space-y-10 lg:grid-cols-4 gap-4">
-          {solarProductsData.map((item, index) => (
-            <Goods key={index} {...item} />
-          ))}
+          {loading ? (
+            // Loading skeleton
+            Array(8).fill().map((_, index) => (
+              <div key={index} className="animate-pulse">
+                <div className="bg-gray-300 h-48 rounded-lg mb-4"></div>
+                <div className="bg-gray-300 h-4 rounded mb-2"></div>
+                <div className="bg-gray-300 h-4 rounded w-3/4"></div>
+              </div>
+            ))
+          ) : error ? (
+            <div className="col-span-full text-center py-8">
+              <p className="text-red-500 mb-2">⚠️ {error}</p>
+              <button 
+                onClick={() => window.location.reload()} 
+                className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700"
+              >
+                🔄 Retry
+              </button>
+            </div>
+          ) : solarProductsData.length > 0 ? (
+            solarProductsData.map((item, index) => (
+              <Goods key={item._id || item.id || index} {...item} />
+            ))
+          ) : (
+            <div className="col-span-full text-center py-8">
+              <p className="text-gray-500">📦 No products available at the moment.</p>
+              <p className="text-sm text-gray-400 mt-2">Products are being loaded from our database...</p>
+            </div>
+          )}
         </div>
       </section>
 
@@ -400,9 +444,11 @@ export default function Home() {
                   value={currentProduct}
                   onChange={(e) => setCurrentProduct(e.target.value)}
                 >
-                  <option value="">Select product(s) and add to shoplist</option>
-                  {solarProductsData.map((product, index) => (
-                    <option key={index} value={product.name}>
+                  <option value="">
+                    {loading ? "Loading products..." : "Select product(s) and add to shoplist"}
+                  </option>
+                  {!loading && solarProductsData.map((product, index) => (
+                    <option key={product._id || index} value={product.name}>
                       {product.name} - {product.price}
                     </option>
                   ))}
