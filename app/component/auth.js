@@ -2,14 +2,23 @@
 const AUTH_KEY = 'nzeoma_admin_auth';
 const SESSION_DURATION = 24 * 60 * 60 * 1000; // 24 hours in milliseconds
 
-// Default admin credentials (you can change these)
-const DEFAULT_CREDENTIALS = {
-  username: 'nzeoma_admin',
-  password: 'MarketGood25' // Updated to match the new credentials
+// Get admin credentials from environment variables
+const getCredentialsFromEnv = () => {
+  return {
+    username: process.env.NEXT_PUBLIC_ADMIN_USERNAME,
+    password: process.env.NEXT_PUBLIC_ADMIN_PASSWORD
+  };
 };
 
 export const login = (username, password) => {
-  if (username === DEFAULT_CREDENTIALS.username && password === DEFAULT_CREDENTIALS.password) {
+  const credentials = getCredentialsFromEnv();
+  
+  // Check if environment variables are set
+  if (!credentials.username || !credentials.password) {
+    return { success: false, error: 'Admin credentials not configured. Please check environment variables.' };
+  }
+  
+  if (username === credentials.username && password === credentials.password) {
     const authData = {
       isAuthenticated: true,
       timestamp: Date.now(),

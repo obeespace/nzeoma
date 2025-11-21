@@ -515,10 +515,10 @@ export default function Home() {
         <div className="space-y-8">
           <p className="text-xl">
             For enquiries, call or WhatsApp us on{" "}
-            <span className="font-semibold">09123456789</span>
+            <span className="font-semibold">08167769060 or 08120521670</span>
           </p>
           <div className="flex justify-center">
-            <Link href="https://wa.link/a4gni5" target="_blank">
+            <Link href="https://wa.me/2348120521670" target="_blank">
               <motion.button
                 whileTap={{ scale: 0.7 }}
                 className="flex gap-2 items-center bg-green-800 text-white px-8 py-4 rounded-full font-semibold hover:bg-green-600 transition"
