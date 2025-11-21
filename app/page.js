@@ -22,14 +22,15 @@ export default function Home() {
   const [error, setError] = useState(null);
 
   useEffect(() => {
-    // Load products data from new MongoDB API
+    // Use the same ProductDataManager as the admin page
     const fetchProducts = async () => {
       try {
         setLoading(true);
         setError(null);
+        
         const products = await ProductDataManager.getAllProducts();
         setSolarProductsData(products);
-        console.log(`📦 Loaded ${products.length} products from MongoDB`);
+        console.log(`📦 Loaded ${products.length} products from ProductDataManager`);
       } catch (error) {
         console.error('❌ Failed to load products:', error);
         setError(error.message);

@@ -13,7 +13,13 @@ export async function GET(request, { params }) {
       );
     }
     
-    const result = await ProductController.getProductById(id);
+    // Add timeout wrapper for get operation
+    const timeoutPromise = new Promise((_, reject) => 
+      setTimeout(() => reject(new Error('Database connection timeout - please check your internet connection')), 20000)
+    );
+    
+    const getPromise = ProductController.getProductById(id);
+    const result = await Promise.race([getPromise, timeoutPromise]);
     
     if (!result.success) {
       return NextResponse.json(
@@ -53,7 +59,13 @@ export async function PUT(request, { params }) {
       );
     }
     
-    const result = await ProductController.updateProduct(id, updateData);
+    // Add timeout wrapper for update operation
+    const timeoutPromise = new Promise((_, reject) => 
+      setTimeout(() => reject(new Error('Database connection timeout - please check your internet connection')), 20000)
+    );
+    
+    const updatePromise = ProductController.updateProduct(id, updateData);
+    const result = await Promise.race([updatePromise, timeoutPromise]);
     
     if (!result.success) {
       return NextResponse.json(
@@ -98,7 +110,13 @@ export async function DELETE(request, { params }) {
       );
     }
     
-    const result = await ProductController.deleteProduct(id);
+    // Add timeout wrapper for delete operation
+    const timeoutPromise = new Promise((_, reject) => 
+      setTimeout(() => reject(new Error('Database connection timeout - please check your internet connection')), 20000)
+    );
+    
+    const deletePromise = ProductController.deleteProduct(id);
+    const result = await Promise.race([deletePromise, timeoutPromise]);
     
     if (!result.success) {
       return NextResponse.json(
