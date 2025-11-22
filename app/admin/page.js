@@ -1,11 +1,11 @@
 "use client";
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import ProductDataManager from '../../lib/dataManager';
+import { productService } from '../../lib/api/productService';
 import { 
   fileToBase64,
   compressImage
-} from '../component/dataManager';
+} from '../../lib/utils/imageUtils';
 import { 
   FiPlus, 
   FiEdit2, 
@@ -14,7 +14,8 @@ import {
   FiSave, 
   FiX,
   FiEye,
-  FiLogOut 
+  FiLogOut,
+  FiRefreshCw 
 } from 'react-icons/fi';
 import { Toaster, toast } from 'sonner';
 import Image from 'next/image';
@@ -42,6 +43,9 @@ export default function Admin() {
   const [imagePreview, setImagePreview] = useState('');
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [productToDelete, setProductToDelete] = useState(null);
+  const [isSaving, setIsSaving] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [isRefreshing, setIsRefreshing] = useState(false);
 
   // Check authentication on component mount
   useEffect(() => {
@@ -90,15 +94,20 @@ export default function Admin() {
     toast.success('Logged out successfully!');
   };
 
-  const loadProducts = async () => {
+  const loadProducts = async (showRefreshing = false) => {
     try {
-      const data = await ProductDataManager.getAllProducts();
-      setProducts(data);
-      setFilteredProducts(data);
+      if (showRefreshing) setIsRefreshing(true);
+      const result = await productService.getAllProducts();
+      setProducts(result.data);
+      setFilteredProducts(result.data);
+      console.log(`📦 Loaded ${result.data.length} products from ${result.source || 'API'}`);
     } catch (error) {
       console.error('Failed to load products:', error);
+      toast.error(`Failed to load products: ${error.message}`);
       setProducts([]);
       setFilteredProducts([]);
+    } finally {
+      if (showRefreshing) setIsRefreshing(false);
     }
   };
 
@@ -166,6 +175,12 @@ export default function Admin() {
   };
 
   const handleSaveProduct = async () => {
+    // Prevent double submission
+    if (isSaving) {
+      toast.error('Save operation in progress, please wait...');
+      return;
+    }
+
     // Validate required fields
     if (!currentProduct.name || !currentProduct.price) {
       toast.error('Please fill in product name and price');
@@ -183,22 +198,37 @@ export default function Admin() {
     }
 
     console.log('Saving product:', currentProduct); // Debug log
+    setIsSaving(true);
 
     try {
       if (editingProduct) {
-        const result = await ProductDataManager.updateProduct(editingProduct._id, currentProduct);
+        const result = await productService.updateProduct(editingProduct._id, currentProduct);
         console.log('Update result:', result);
-        toast.success('Product updated successfully!');
+        toast.success(result.message || 'Product updated successfully!');
+        
+        // Update product in local state immediately
+        setProducts(prev => prev.map(p => 
+          p._id === editingProduct._id ? { ...result.data } : p
+        ));
+        setFilteredProducts(prev => prev.map(p => 
+          p._id === editingProduct._id ? { ...result.data } : p
+        ));
       } else {
-        const result = await ProductDataManager.createProduct(currentProduct);
+        const result = await productService.createProduct(currentProduct);
         console.log('Create result:', result);
-        toast.success('Product added successfully!');
+        toast.success(result.message || 'Product added successfully!');
+        
+        // Add new product to local state immediately
+        setProducts(prev => [...prev, result.data]);
+        setFilteredProducts(prev => [...prev, result.data]);
       }
-      await loadProducts();
+      
       handleCloseModal();
     } catch (error) {
       console.error('Save error details:', error);
       toast.error(`Failed to save product: ${error.message}`);
+    } finally {
+      setIsSaving(false);
     }
   };
 
@@ -220,15 +250,29 @@ export default function Admin() {
   };
 
   const confirmDeleteProduct = async () => {
+    // Prevent double submission
+    if (isDeleting) {
+      toast.error('Delete operation in progress, please wait...');
+      return;
+    }
+
+    setIsDeleting(true);
+    
     try {
-      await ProductDataManager.deleteProduct(productToDelete.id);
-      toast.success('Product deleted successfully!');
-      await loadProducts();
+      const result = await productService.deleteProduct(productToDelete.id);
+      toast.success(result.message || 'Product deleted successfully!');
+      
+      // Remove product from local state immediately
+      setProducts(prev => prev.filter(p => p._id !== productToDelete.id));
+      setFilteredProducts(prev => prev.filter(p => p._id !== productToDelete.id));
+      
       setShowDeleteModal(false);
       setProductToDelete(null);
     } catch (error) {
-      toast.error('Failed to delete product');
+      toast.error(`Failed to delete product: ${error.message}`);
       console.error('Delete error:', error);
+    } finally {
+      setIsDeleting(false);
     }
   };
 
@@ -277,11 +321,26 @@ export default function Admin() {
             </Link>
             <div className="flex gap-2">
               <button
-                onClick={handleAddProduct}
-                className="group bg-green-800 text-white px-4 py-2 rounded-lg shadow-md hover:shadow-lg transform hover:-translate-y-0.5 hover:bg-green-600 transition-all duration-200 font-semibold text-sm"
+                onClick={() => loadProducts(true)}
+                disabled={isSaving || isDeleting || isRefreshing}
+                className="group bg-blue-600 text-white px-4 py-2 rounded-lg shadow-md hover:shadow-lg transform hover:-translate-y-0.5 hover:bg-blue-700 transition-all duration-200 font-semibold text-sm disabled:bg-gray-400 disabled:cursor-not-allowed disabled:transform-none"
               >
                 <div className="flex items-center gap-1">
-                  <FiPlus className="text-base group-hover:rotate-90 transition-transform duration-200" />
+                  <FiRefreshCw className={`text-base transition-transform duration-200 ${isRefreshing ? 'animate-spin' : 'group-hover:rotate-180'}`} />
+                  Sync
+                </div>
+              </button>
+              <button
+                onClick={handleAddProduct}
+                disabled={isSaving || isDeleting || isRefreshing}
+                className="group bg-green-800 text-white px-4 py-2 rounded-lg shadow-md hover:shadow-lg transform hover:-translate-y-0.5 hover:bg-green-600 transition-all duration-200 font-semibold text-sm disabled:bg-gray-400 disabled:cursor-not-allowed disabled:transform-none"
+              >
+                <div className="flex items-center gap-1">
+                  {(isSaving || isRefreshing) ? (
+                    <div className="animate-spin rounded-full h-3 w-3 border border-white border-t-transparent"></div>
+                  ) : (
+                    <FiPlus className="text-base group-hover:rotate-90 transition-transform duration-200" />
+                  )}
                   Add
                 </div>
               </button>
@@ -317,11 +376,26 @@ export default function Admin() {
           </div>
           <div className="flex gap-3">
             <button
-              onClick={handleAddProduct}
-              className="group bg-green-800 text-white px-6 py-3 rounded-xl shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 hover:bg-green-600 transition-all duration-200 font-semibold"
+              onClick={() => loadProducts(true)}
+              disabled={isSaving || isDeleting || isRefreshing}
+              className="group bg-blue-600 text-white px-6 py-3 rounded-xl shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 hover:bg-blue-700 transition-all duration-200 font-semibold disabled:bg-gray-400 disabled:cursor-not-allowed disabled:transform-none"
             >
               <div className="flex items-center gap-2">
-                <FiPlus className="text-lg group-hover:rotate-90 transition-transform duration-200" />
+                <FiRefreshCw className={`text-lg transition-transform duration-200 ${isRefreshing ? 'animate-spin' : 'group-hover:rotate-180'}`} />
+                Refresh Data
+              </div>
+            </button>
+            <button
+              onClick={handleAddProduct}
+              disabled={isSaving || isDeleting || isRefreshing}
+              className="group bg-green-800 text-white px-6 py-3 rounded-xl shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 hover:bg-green-600 transition-all duration-200 font-semibold disabled:bg-gray-400 disabled:cursor-not-allowed disabled:transform-none"
+            >
+              <div className="flex items-center gap-2">
+                {(isSaving || isRefreshing) ? (
+                  <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent"></div>
+                ) : (
+                  <FiPlus className="text-lg group-hover:rotate-90 transition-transform duration-200" />
+                )}
                 Add Product
               </div>
             </button>
@@ -396,16 +470,26 @@ export default function Admin() {
               <div className="flex gap-2">
                 <button
                   onClick={() => handleEditProduct(product)}
-                  className="group flex-1 bg-green-800 text-white py-2.5 px-3 sm:px-4 rounded-lg flex items-center justify-center gap-1.5 sm:gap-2 hover:bg-green-600 hover:shadow-lg transform hover:-translate-y-0.5 transition-all duration-200 font-medium text-sm sm:text-base"
+                  disabled={isSaving || isDeleting || isRefreshing}
+                  className="group flex-1 bg-green-800 text-white py-2.5 px-3 sm:px-4 rounded-lg flex items-center justify-center gap-1.5 sm:gap-2 hover:bg-green-600 hover:shadow-lg transform hover:-translate-y-0.5 transition-all duration-200 font-medium text-sm sm:text-base disabled:bg-gray-400 disabled:cursor-not-allowed disabled:transform-none"
                 >
-                  <FiEdit2 size={14} className="sm:w-4 sm:h-4 group-hover:rotate-12 transition-transform duration-200" />
+                  {isSaving ? (
+                    <div className="animate-spin rounded-full h-3 w-3 sm:h-4 sm:w-4 border border-white border-t-transparent"></div>
+                  ) : (
+                    <FiEdit2 size={14} className="sm:w-4 sm:h-4 group-hover:rotate-12 transition-transform duration-200" />
+                  )}
                   <span>Edit</span>
                 </button>
                 <button
                   onClick={() => handleDeleteProduct(product._id, product.name)}
-                  className="group flex-1 bg-gray-200 text-gray-700 py-2.5 px-3 sm:px-4 rounded-lg flex items-center justify-center gap-1.5 sm:gap-2 hover:bg-red-100 hover:text-red-700 hover:shadow-lg transform hover:-translate-y-0.5 transition-all duration-200 font-medium border border-gray-300 hover:border-red-300 text-sm sm:text-base"
+                  disabled={isSaving || isDeleting || isRefreshing}
+                  className="group flex-1 bg-gray-200 text-gray-700 py-2.5 px-3 sm:px-4 rounded-lg flex items-center justify-center gap-1.5 sm:gap-2 hover:bg-red-100 hover:text-red-700 hover:shadow-lg transform hover:-translate-y-0.5 transition-all duration-200 font-medium border border-gray-300 hover:border-red-300 text-sm sm:text-base disabled:bg-gray-400 disabled:cursor-not-allowed disabled:transform-none disabled:text-gray-500"
                 >
-                  <FiTrash2 size={14} className="sm:w-4 sm:h-4 group-hover:scale-110 transition-transform duration-200" />
+                  {isDeleting ? (
+                    <div className="animate-spin rounded-full h-3 w-3 sm:h-4 sm:w-4 border border-gray-700 border-t-transparent"></div>
+                  ) : (
+                    <FiTrash2 size={14} className="sm:w-4 sm:h-4 group-hover:scale-110 transition-transform duration-200" />
+                  )}
                   <span>Delete</span>
                 </button>
               </div>
@@ -573,12 +657,21 @@ export default function Admin() {
               <button
                 type="button"
                 onClick={handleSaveProduct}
-                disabled={!currentProduct.name || !currentProduct.price || !currentProduct.alt || !currentProduct.image}
+                disabled={!currentProduct.name || !currentProduct.price || !currentProduct.alt || !currentProduct.image || isSaving}
                 className="group flex-1 bg-green-800 text-white py-3 px-4 lg:px-6 rounded-xl shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 hover:bg-green-600 transition-all duration-200 font-semibold disabled:bg-gray-400 disabled:cursor-not-allowed disabled:transform-none disabled:shadow-none"
               >
                 <div className="flex items-center justify-center gap-2">
-                  <FiSave className="group-hover:scale-110 transition-transform duration-200" />
-                  {editingProduct ? 'Update Product' : 'Save Product'}
+                  {isSaving ? (
+                    <>
+                      <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent"></div>
+                      Saving...
+                    </>
+                  ) : (
+                    <>
+                      <FiSave className="group-hover:scale-110 transition-transform duration-200" />
+                      {editingProduct ? 'Update Product' : 'Save Product'}
+                    </>
+                  )}
                 </div>
               </button>
               <button
@@ -634,11 +727,21 @@ export default function Admin() {
                 <button
                   type="button"
                   onClick={confirmDeleteProduct}
-                  className="group bg-red-600 text-white py-3 px-6 rounded-xl shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 hover:bg-red-700 transition-all duration-200 font-semibold"
+                  disabled={isDeleting}
+                  className="group bg-red-600 text-white py-3 px-6 rounded-xl shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 hover:bg-red-700 transition-all duration-200 font-semibold disabled:bg-gray-400 disabled:cursor-not-allowed disabled:transform-none"
                 >
                   <div className="flex items-center justify-center gap-2">
-                    <FiTrash2 className="group-hover:scale-110 transition-transform duration-200" />
-                    Yes, Delete
+                    {isDeleting ? (
+                      <>
+                        <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent"></div>
+                        Deleting...
+                      </>
+                    ) : (
+                      <>
+                        <FiTrash2 className="group-hover:scale-110 transition-transform duration-200" />
+                        Yes, Delete
+                      </>
+                    )}
                   </div>
                 </button>
                 <button

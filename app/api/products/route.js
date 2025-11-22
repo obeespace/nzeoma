@@ -1,6 +1,5 @@
 import { NextResponse } from 'next/server';
 import { ProductController } from '../../../lib/controllers/productController';
-import { fallbackProductsData } from '../../component/fallbackData';
 
 // GET /api/products - Fetch all products with optional filters
 export async function GET(request) {
@@ -23,109 +22,36 @@ export async function GET(request) {
       filters[key] === undefined && delete filters[key]
     );
     
-    let result;
-    let usedFallback = false;
+    console.log('🔍 Fetching products from MongoDB...');
+    console.log('Environment check - MONGODB_URI exists:', !!process.env.MONGODB_URI);
     
-    try {
-      // Try to get data from MongoDB with timeout
-      console.log('🔍 Attempting to fetch from MongoDB...');
-      console.log('Environment check - MONGODB_URI exists:', !!process.env.MONGODB_URI);
-      console.log('Environment check - MONGODB_URI starts with:', process.env.MONGODB_URI?.substring(0, 20));
-      
-      const timeoutPromise = new Promise((_, reject) => 
-        setTimeout(() => reject(new Error('Database connection timeout')), 20000)
+    // Get data directly from MongoDB - no fallback
+    const result = await ProductController.getAllProducts(filters);
+    
+    if (!result.success) {
+      console.error('Database error:', result.error);
+      return NextResponse.json(
+        { error: 'Database connection failed', details: result.error },
+        { status: 500 }
       );
-      
-      const dataPromise = ProductController.getAllProducts(filters);
-      result = await Promise.race([dataPromise, timeoutPromise]);
-      
-      if (!result.success) {
-        throw new Error(result.error);
-      }
-      
-      console.log('✅ Successfully fetched from MongoDB:', result.data.length, 'products');
-    } catch (error) {
-      console.log('🔄 Database connection failed, using fallback data');
-      console.error('Database error:', error.message);
-      
-      // Use fallback data if database fails
-      usedFallback = true;
-      let filteredData = [...fallbackProductsData];
-      
-      // Apply filters to fallback data
-      if (filters.category) {
-        filteredData = filteredData.filter(product => 
-          product.category === filters.category
-        );
-      }
-      if (filters.inStock !== undefined) {
-        filteredData = filteredData.filter(product => 
-          product.inStock === filters.inStock
-        );
-      }
-      if (filters.minWattage) {
-        filteredData = filteredData.filter(product => 
-          product.wattage >= filters.minWattage
-        );
-      }
-      if (filters.maxWattage) {
-        filteredData = filteredData.filter(product => 
-          product.wattage <= filters.maxWattage
-        );
-      }
-      
-      // Apply sorting
-      if (filters.sortBy) {
-        filteredData.sort((a, b) => {
-          switch (filters.sortBy) {
-            case 'name':
-              return a.name.localeCompare(b.name);
-            case 'price':
-              const priceA = parseInt(a.price.replace(/[₦,]/g, ''));
-              const priceB = parseInt(b.price.replace(/[₦,]/g, ''));
-              return priceA - priceB;
-            case 'wattage':
-              return b.wattage - a.wattage;
-            default:
-              return 0;
-          }
-        });
-      }
-      
-      // Apply pagination
-      const skip = filters.skip || 0;
-      const limit = filters.limit || 100;
-      const paginatedData = filteredData.slice(skip, skip + limit);
-      
-      result = {
-        success: true,
-        data: paginatedData,
-        count: paginatedData.length,
-        total: filteredData.length
-      };
     }
+    
+    console.log('✅ Successfully fetched from MongoDB:', result.data.length, 'products');
     
     // Set cache headers for better performance
     const response = NextResponse.json(result.data);
     response.headers.set('Cache-Control', 's-maxage=60, stale-while-revalidate=300');
     response.headers.set('X-Total-Count', result.total.toString());
-    response.headers.set('X-Data-Source', usedFallback ? 'fallback' : 'database');
+    response.headers.set('X-Data-Source', 'database');
     
     return response;
   } catch (error) {
     console.error('Products API GET error:', error);
     
-    // Even if everything fails, try to return fallback data
-    try {
-      const response = NextResponse.json(fallbackProductsData);
-      response.headers.set('X-Data-Source', 'emergency-fallback');
-      return response;
-    } catch (fallbackError) {
-      return NextResponse.json(
-        { error: 'Internal server error', details: error.message },
-        { status: 500 }
-      );
-    }
+    return NextResponse.json(
+      { error: 'Database connection failed', details: error.message },
+      { status: 500 }
+    );
   }
 }
 
@@ -142,13 +68,8 @@ export async function POST(request) {
       );
     }
     
-    // Add timeout wrapper for create operation
-    const timeoutPromise = new Promise((_, reject) => 
-      setTimeout(() => reject(new Error('Database connection timeout - please check your internet connection')), 20000)
-    );
-    
-    const createPromise = ProductController.createProduct(productData);
-    const result = await Promise.race([createPromise, timeoutPromise]);
+    console.log('📝 Creating product in database...');
+    const result = await ProductController.createProduct(productData);
     
     if (!result.success) {
       return NextResponse.json(
@@ -179,7 +100,7 @@ export async function POST(request) {
     }
     
     return NextResponse.json(
-      { error: 'Internal server error', details: error.message },
+      { error: 'Database operation failed', details: error.message },
       { status: 500 }
     );
   }

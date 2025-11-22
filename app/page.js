@@ -12,7 +12,7 @@ import { FaWhatsapp } from "react-icons/fa";
 import Goods from "./component/Goods";
 import Link from "next/link";
 import { useState, useEffect } from "react";
-import ProductDataManager from "../lib/dataManager";
+import { productService } from "../lib/api/productService";
 
 export default function Home() {
   const [selectedProducts, setSelectedProducts] = useState([]);
@@ -20,17 +20,36 @@ export default function Home() {
   const [solarProductsData, setSolarProductsData] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [submittingOrder, setSubmittingOrder] = useState(false);
+
+  // Function to refresh products data
+  const refreshProducts = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      
+      const result = await productService.getAllProducts();
+      setSolarProductsData(result.data);
+      console.log(`🔄 Refreshed ${result.data.length} products from ${result.source || 'API'}`);
+    } catch (error) {
+      console.error('❌ Failed to refresh products:', error);
+      setError(error.message);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
-    // Use the same ProductDataManager as the admin page
+    // Use the new axios-based product service
     const fetchProducts = async () => {
       try {
         setLoading(true);
         setError(null);
         
-        const products = await ProductDataManager.getAllProducts();
-        setSolarProductsData(products);
-        console.log(`📦 Loaded ${products.length} products from ProductDataManager`);
+        const result = await productService.getAllProducts();
+        setSolarProductsData(result.data);
+        console.log(`📦 Loaded ${result.data.length} products from ${result.source || 'API'}`);
+        console.log(`📊 Total products available: ${result.total}`);
       } catch (error) {
         console.error('❌ Failed to load products:', error);
         setError(error.message);
@@ -50,6 +69,13 @@ export default function Home() {
       toast.error("Please fill in all required fields and select at least one product.");
       return;
     }
+
+    if (submittingOrder) {
+      toast.error("Order is already being submitted, please wait...");
+      return;
+    }
+
+    setSubmittingOrder(true);
 
     // Use EmailJS credentials from environment variables
     const serviceId = process.env.NEXT_PUBLIC_EMAILJS_SERVICE_ID;
@@ -108,6 +134,7 @@ export default function Home() {
           });
           setSelectedProducts([]);
           setCurrentProduct("");
+          setSubmittingOrder(false);
         },
         (error) => {
           console.error("EmailJS Error:", error);
@@ -124,6 +151,7 @@ export default function Home() {
           } else {
             toast.error(`Failed to send order: ${error.text || error.message}`);
           }
+          setSubmittingOrder(false);
         }
       );
   };
@@ -264,10 +292,20 @@ export default function Home() {
             <div className="col-span-full text-center py-8">
               <p className="text-red-500 mb-2">⚠️ {error}</p>
               <button 
-                onClick={() => window.location.reload()} 
-                className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700"
+                onClick={refreshProducts}
+                disabled={loading}
+                className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 disabled:bg-gray-400 disabled:cursor-not-allowed flex items-center gap-2 mx-auto"
               >
-                🔄 Retry
+                {loading ? (
+                  <>
+                    <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent"></div>
+                    Retrying...
+                  </>
+                ) : (
+                  <>
+                    🔄 Retry
+                  </>
+                )}
               </button>
             </div>
           ) : solarProductsData.length > 0 ? (
@@ -544,14 +582,23 @@ export default function Home() {
             <motion.button 
             whileTap={{ scale: 0.7 }}
               onClick={sendEmail}
-              disabled={!isFormValid()}
+              disabled={!isFormValid() || submittingOrder}
               className={`flex gap-1 items-center text-white px-8 py-3 rounded-full w-fit font-semibold transition ${
-                isFormValid() 
+                isFormValid() && !submittingOrder
                   ? 'bg-green-800 hover:bg-green-600 cursor-pointer' 
                   : 'bg-gray-400 cursor-not-allowed'
               }`}
             >
-              <LuSend/> Submit Order
+              {submittingOrder ? (
+                <>
+                  <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent"></div>
+                  Submitting...
+                </>
+              ) : (
+                <>
+                  <LuSend/> Submit Order
+                </>
+              )}
             </motion.button>
           </div>
           <p className="text-xs text-red-600 text-center -mt-3">Only click this button if you are ready to place this order!!</p>

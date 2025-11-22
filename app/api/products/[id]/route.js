@@ -13,13 +13,8 @@ export async function GET(request, { params }) {
       );
     }
     
-    // Add timeout wrapper for get operation
-    const timeoutPromise = new Promise((_, reject) => 
-      setTimeout(() => reject(new Error('Database connection timeout - please check your internet connection')), 20000)
-    );
-    
-    const getPromise = ProductController.getProductById(id);
-    const result = await Promise.race([getPromise, timeoutPromise]);
+    console.log(`🔍 Fetching product ${id} from database...`);
+    const result = await ProductController.getProductById(id);
     
     if (!result.success) {
       return NextResponse.json(
@@ -32,7 +27,7 @@ export async function GET(request, { params }) {
   } catch (error) {
     console.error('Product GET error:', error);
     return NextResponse.json(
-      { error: 'Internal server error', details: error.message },
+      { error: 'Database operation failed', details: error.message },
       { status: 500 }
     );
   }
@@ -59,13 +54,8 @@ export async function PUT(request, { params }) {
       );
     }
     
-    // Add timeout wrapper for update operation
-    const timeoutPromise = new Promise((_, reject) => 
-      setTimeout(() => reject(new Error('Database connection timeout - please check your internet connection')), 20000)
-    );
-    
-    const updatePromise = ProductController.updateProduct(id, updateData);
-    const result = await Promise.race([updatePromise, timeoutPromise]);
+    console.log(`📝 Updating product ${id} in database...`);
+    const result = await ProductController.updateProduct(id, updateData);
     
     if (!result.success) {
       return NextResponse.json(
@@ -92,7 +82,7 @@ export async function PUT(request, { params }) {
     }
     
     return NextResponse.json(
-      { error: 'Internal server error', details: error.message },
+      { error: 'Database operation failed', details: error.message },
       { status: 500 }
     );
   }
@@ -110,13 +100,8 @@ export async function DELETE(request, { params }) {
       );
     }
     
-    // Add timeout wrapper for delete operation
-    const timeoutPromise = new Promise((_, reject) => 
-      setTimeout(() => reject(new Error('Database connection timeout - please check your internet connection')), 20000)
-    );
-    
-    const deletePromise = ProductController.deleteProduct(id);
-    const result = await Promise.race([deletePromise, timeoutPromise]);
+    console.log(`🗑️ Deleting product ${id} from database...`);
+    const result = await ProductController.deleteProduct(id);
     
     if (!result.success) {
       return NextResponse.json(
@@ -133,7 +118,7 @@ export async function DELETE(request, { params }) {
   } catch (error) {
     console.error('Product DELETE error:', error);
     return NextResponse.json(
-      { error: 'Internal server error', details: error.message },
+      { error: 'Database operation failed', details: error.message },
       { status: 500 }
     );
   }
