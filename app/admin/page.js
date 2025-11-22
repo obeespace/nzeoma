@@ -14,8 +14,7 @@ import {
   FiSave, 
   FiX,
   FiEye,
-  FiLogOut,
-  FiRefreshCw 
+  FiLogOut 
 } from 'react-icons/fi';
 import { Toaster, toast } from 'sonner';
 import Image from 'next/image';
@@ -45,7 +44,6 @@ export default function Admin() {
   const [productToDelete, setProductToDelete] = useState(null);
   const [isSaving, setIsSaving] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
-  const [isRefreshing, setIsRefreshing] = useState(false);
 
   // Check authentication on component mount
   useEffect(() => {
@@ -94,9 +92,8 @@ export default function Admin() {
     toast.success('Logged out successfully!');
   };
 
-  const loadProducts = async (showRefreshing = false) => {
+  const loadProducts = async () => {
     try {
-      if (showRefreshing) setIsRefreshing(true);
       const result = await productService.getAllProducts();
       setProducts(result.data);
       setFilteredProducts(result.data);
@@ -106,8 +103,6 @@ export default function Admin() {
       toast.error(`Failed to load products: ${error.message}`);
       setProducts([]);
       setFilteredProducts([]);
-    } finally {
-      if (showRefreshing) setIsRefreshing(false);
     }
   };
 
@@ -321,22 +316,12 @@ export default function Admin() {
             </Link>
             <div className="flex gap-2">
               <button
-                onClick={() => loadProducts(true)}
-                disabled={isSaving || isDeleting || isRefreshing}
-                className="group bg-blue-600 text-white px-4 py-2 rounded-lg shadow-md hover:shadow-lg transform hover:-translate-y-0.5 hover:bg-blue-700 transition-all duration-200 font-semibold text-sm disabled:bg-gray-400 disabled:cursor-not-allowed disabled:transform-none"
-              >
-                <div className="flex items-center gap-1">
-                  <FiRefreshCw className={`text-base transition-transform duration-200 ${isRefreshing ? 'animate-spin' : 'group-hover:rotate-180'}`} />
-                  Sync
-                </div>
-              </button>
-              <button
                 onClick={handleAddProduct}
-                disabled={isSaving || isDeleting || isRefreshing}
+                disabled={isSaving || isDeleting}
                 className="group bg-green-800 text-white px-4 py-2 rounded-lg shadow-md hover:shadow-lg transform hover:-translate-y-0.5 hover:bg-green-600 transition-all duration-200 font-semibold text-sm disabled:bg-gray-400 disabled:cursor-not-allowed disabled:transform-none"
               >
                 <div className="flex items-center gap-1">
-                  {(isSaving || isRefreshing) ? (
+                  {isSaving ? (
                     <div className="animate-spin rounded-full h-3 w-3 border border-white border-t-transparent"></div>
                   ) : (
                     <FiPlus className="text-base group-hover:rotate-90 transition-transform duration-200" />
@@ -376,22 +361,12 @@ export default function Admin() {
           </div>
           <div className="flex gap-3">
             <button
-              onClick={() => loadProducts(true)}
-              disabled={isSaving || isDeleting || isRefreshing}
-              className="group bg-blue-600 text-white px-6 py-3 rounded-xl shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 hover:bg-blue-700 transition-all duration-200 font-semibold disabled:bg-gray-400 disabled:cursor-not-allowed disabled:transform-none"
-            >
-              <div className="flex items-center gap-2">
-                <FiRefreshCw className={`text-lg transition-transform duration-200 ${isRefreshing ? 'animate-spin' : 'group-hover:rotate-180'}`} />
-                Refresh Data
-              </div>
-            </button>
-            <button
               onClick={handleAddProduct}
-              disabled={isSaving || isDeleting || isRefreshing}
+              disabled={isSaving || isDeleting}
               className="group bg-green-800 text-white px-6 py-3 rounded-xl shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 hover:bg-green-600 transition-all duration-200 font-semibold disabled:bg-gray-400 disabled:cursor-not-allowed disabled:transform-none"
             >
               <div className="flex items-center gap-2">
-                {(isSaving || isRefreshing) ? (
+                {isSaving ? (
                   <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent"></div>
                 ) : (
                   <FiPlus className="text-lg group-hover:rotate-90 transition-transform duration-200" />
@@ -470,7 +445,7 @@ export default function Admin() {
               <div className="flex gap-2">
                 <button
                   onClick={() => handleEditProduct(product)}
-                  disabled={isSaving || isDeleting || isRefreshing}
+                  disabled={isSaving || isDeleting}
                   className="group flex-1 bg-green-800 text-white py-2.5 px-3 sm:px-4 rounded-lg flex items-center justify-center gap-1.5 sm:gap-2 hover:bg-green-600 hover:shadow-lg transform hover:-translate-y-0.5 transition-all duration-200 font-medium text-sm sm:text-base disabled:bg-gray-400 disabled:cursor-not-allowed disabled:transform-none"
                 >
                   {isSaving ? (
@@ -482,7 +457,7 @@ export default function Admin() {
                 </button>
                 <button
                   onClick={() => handleDeleteProduct(product._id, product.name)}
-                  disabled={isSaving || isDeleting || isRefreshing}
+                  disabled={isSaving || isDeleting}
                   className="group flex-1 bg-gray-200 text-gray-700 py-2.5 px-3 sm:px-4 rounded-lg flex items-center justify-center gap-1.5 sm:gap-2 hover:bg-red-100 hover:text-red-700 hover:shadow-lg transform hover:-translate-y-0.5 transition-all duration-200 font-medium border border-gray-300 hover:border-red-300 text-sm sm:text-base disabled:bg-gray-400 disabled:cursor-not-allowed disabled:transform-none disabled:text-gray-500"
                 >
                   {isDeleting ? (
