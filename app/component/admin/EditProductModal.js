@@ -52,7 +52,7 @@ export default function EditProductModal({
             </label>
             <input
               type="text"
-              value={currentProduct.name}
+              value={currentProduct.name || ''}
               onChange={(e) => setCurrentProduct({...currentProduct, name: e.target.value})}
               className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all duration-200 placeholder-gray-400"
               placeholder="Enter product name..."
@@ -65,7 +65,7 @@ export default function EditProductModal({
             </label>
             <input
               type="text"
-              value={currentProduct.price}
+              value={currentProduct.price || ''}
               onChange={(e) => {
                 let value = e.target.value;
                 // Remove any existing naira symbol and clean the input
@@ -88,8 +88,8 @@ export default function EditProductModal({
             </label>
             <input
               type="text"
-              value={currentProduct.alt}
-              onChange={(e) => setCurrentProduct({...currentProduct, alt: e.target.value})}
+              value={currentProduct.description || ''}
+              onChange={(e) => setCurrentProduct({...currentProduct, description: e.target.value})}
               className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all duration-200 placeholder-gray-400"
               placeholder="Product description..."
             />
@@ -165,7 +165,7 @@ export default function EditProductModal({
           <button
             type="button"
             onClick={handleSaveProduct}
-            disabled={!currentProduct.name || !currentProduct.price || !currentProduct.alt || !currentProduct.image || isSaving}
+            disabled={!currentProduct.name || !currentProduct.price || !currentProduct.description || !currentProduct.image || isSaving}
             className="group flex-1 bg-green-800 text-white py-3 px-4 lg:px-6 rounded-xl shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 hover:bg-green-600 transition-all duration-200 font-semibold disabled:bg-gray-400 disabled:cursor-not-allowed disabled:transform-none disabled:shadow-none"
           >
             <div className="flex items-center justify-center gap-2">

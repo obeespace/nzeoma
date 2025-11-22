@@ -21,7 +21,7 @@ export default function ProductCard({
         {product.image && (
           <Image
             src={product.image}
-            alt={product.alt || product.name}
+            alt={product.description}
             fill
             className="object-cover"
             onError={(e) => {

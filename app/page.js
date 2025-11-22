@@ -144,21 +144,31 @@ const fetchProducts = useCallback(async () => {
   });
 
   const addProduct = (productName) => {
-    if (!productName) return;
-    
-    const product = solarProductsData.find(p => p.name === productName);
-    const existingProduct = selectedProducts.find(p => p.name === productName);
-    
+    const productId = productName; // select stores id as value
+    if (!productId) return;
+
+    const product = solarProductsData.find(p => p._id === productId || p.id === productId);
+    if (!product) return;
+
+    const existingProduct = selectedProducts.find(p => p.id === (product._id || product.id));
+
+    const numericPrice = typeof product.price === 'number'
+      ? product.price
+      : parseInt(String(product.price).replace(/[₦,]/g, '')) || 0;
+
+    const priceDisplay = typeof product.price === 'number' ? `₦${product.price.toLocaleString()}` : product.price;
+
     if (existingProduct) {
       setSelectedProducts(selectedProducts.map(p => 
-        p.name === productName ? {...p, quantity: p.quantity + 1} : p
+        p.id === (product._id || product.id) ? {...p, quantity: p.quantity + 1} : p
       ));
     } else {
       setSelectedProducts([...selectedProducts, {
+        id: product._id || product.id,
         name: product.name,
-        price: product.price,
+        price: priceDisplay,
         quantity: 1,
-        numericPrice: parseInt(product.price.replace(/[₦,]/g, ''))
+        numericPrice
       }]);
     }
     setCurrentProduct("");
@@ -465,8 +475,8 @@ const fetchProducts = useCallback(async () => {
                     {loading ? "Loading products..." : "Select product(s) and add to shoplist"}
                   </option>
                   {!loading && solarProductsData.map((product, index) => (
-                    <option key={product._id || index} value={product.name}>
-                      {product.name} - {product.price}
+                    <option key={product._id || index} value={product._id || product.id}>
+                      {product.name} - {typeof product.price === 'number' ? `₦${product.price.toLocaleString()}` : product.price}
                     </option>
                   ))}
                 </select>

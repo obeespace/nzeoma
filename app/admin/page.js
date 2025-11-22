@@ -30,7 +30,7 @@ export default function Admin() {
   const [currentProduct, setCurrentProduct] = useState({
     name: '',
     price: '',
-    alt: '',
+    description: '',
     image: ''
   });
   const [uploadingImage, setUploadingImage] = useState(false);
@@ -103,7 +103,7 @@ export default function Admin() {
     setCurrentProduct({
       name: '',
       price: '',
-      alt: '',
+      description: '',
       image: ''
     });
     setImagePreview('');
@@ -112,12 +112,10 @@ export default function Admin() {
 
   const handleEditProduct = (product) => {
     setEditingProduct(product);
-    // Ensure price has naira symbol when editing
+    // Format price with naira symbol for display
     const formattedProduct = {
       ...product,
-      price: product.price && !product.price.includes('₦') 
-        ? `₦${product.price}` 
-        : product.price
+      price: `₦${product.price.toLocaleString()}`
     };
     setCurrentProduct(formattedProduct);
     setImagePreview(product.image || '');
@@ -143,77 +141,69 @@ export default function Admin() {
     setUploadingImage(true);
 
     try {
-      // Compress image if it's large
-      const compressedFile = await compressImage(file);
-      const base64 = await fileToBase64(compressedFile);
-      
-      setCurrentProduct({
-        ...currentProduct,
-        image: base64
-      });
-      setImagePreview(base64);
-      toast.success('Image uploaded successfully!');
+      // Convert image to base64
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        const base64String = reader.result;
+        setCurrentProduct({
+          ...currentProduct,
+          image: base64String
+        });
+        setImagePreview(base64String);
+        toast.success('Image uploaded successfully!');
+        setUploadingImage(false);
+      };
+      reader.onerror = () => {
+        toast.error('Failed to upload image');
+        setUploadingImage(false);
+      };
+      reader.readAsDataURL(file);
     } catch (error) {
       console.error('Error uploading image:', error);
       toast.error('Failed to upload image');
-    } finally {
       setUploadingImage(false);
     }
   };
 
   const handleSaveProduct = async () => {
-    // Prevent double submission
-    if (isSaving) {
-      toast.error('Save operation in progress, please wait...');
-      return;
-    }
-
-    // Validate required fields
-    if (!currentProduct.name || !currentProduct.price) {
-      toast.error('Please fill in product name and price');
-      return;
-    }
-    
-    if (!currentProduct.alt) {
-      toast.error('Please fill in alt text for accessibility');
-      return;
-    }
-    
-    if (!currentProduct.image) {
-      toast.error('Please upload a product image');
-      return;
-    }
-
-    console.log('Saving product:', currentProduct); // Debug log
-    setIsSaving(true);
-
     try {
+      setIsSaving(true);
+      
+      // Convert price string (₦25,000) to number (25000)
+      const priceValue = parseInt(currentProduct.price.replace(/[₦,]/g, ''));
+      
+      const productData = {
+        name: currentProduct.name,
+        price: priceValue,
+        description: currentProduct.description,
+        image: currentProduct.image
+      };
+
       if (editingProduct) {
-        const result = await productService.updateProduct(editingProduct._id, currentProduct);
-        console.log('Update result:', result);
-        toast.success(result.message || 'Product updated successfully!');
+        // Update existing product
+        const { data } = await axios.put("/api/products", { id: editingProduct._id, ...productData });
         
-        // Update product in local state immediately
-        setProducts(prev => prev.map(p => 
-          p._id === editingProduct._id ? { ...result.data } : p
-        ));
-        setFilteredProducts(prev => prev.map(p => 
-          p._id === editingProduct._id ? { ...result.data } : p
-        ));
+        // Update product in state
+        setProducts(prev => prev.map(p => p._id === editingProduct._id ? data.updatedProduct : p));
+        setFilteredProducts(prev => prev.map(p => p._id === editingProduct._id ? data.updatedProduct : p));
+        
+        toast.success("Product updated successfully!");
       } else {
-        const result = await productService.createProduct(currentProduct);
-        console.log('Create result:', result);
-        toast.success(result.message || 'Product added successfully!');
+        // Add new product
+        const { data } = await axios.post("/api/products", productData);
         
-        // Add new product to local state immediately
-        setProducts(prev => [...prev, result.data]);
-        setFilteredProducts(prev => [...prev, result.data]);
+        // Add new product to state
+        setProducts(prev => [...prev, data.newProduct]);
+        setFilteredProducts(prev => [...prev, data.newProduct]);
+        
+        toast.success("Product added successfully!");
       }
       
       handleCloseModal();
-    } catch (error) {
-      console.error('Save error details:', error);
-      toast.error(`Failed to save product: ${error.message}`);
+      
+    } catch (err) {
+      console.error(err);
+      toast.error(editingProduct ? "Failed to update product. Try again." : "Failed to add product. Try again.");
     } finally {
       setIsSaving(false);
     }
@@ -225,7 +215,7 @@ export default function Admin() {
     setCurrentProduct({
       name: '',
       price: '',
-      alt: '',
+      description: '',
       image: ''
     });
     setEditingProduct(null);
@@ -237,24 +227,24 @@ export default function Admin() {
   };
 
   const confirmDeleteProduct = async () => {
-    // Prevent double submission
-    if (isDeleting) {
-      toast.error('Delete operation in progress, please wait...');
-      return;
-    }
-
-    setIsDeleting(true);
-    
     try {
-      const result = await productService.deleteProduct(productToDelete.id);
-      toast.success(result.message || 'Product deleted successfully!');
-
+      setIsDeleting(true);
       
+      const { data } = await axios.delete("/api/products", { 
+        data: { id: productToDelete.id }
+      });
+      
+      // Remove product from state
+      setProducts(prev => prev.filter(p => p._id !== productToDelete.id));
+      setFilteredProducts(prev => prev.filter(p => p._id !== productToDelete.id));
+      
+      toast.success("Product deleted successfully!");
       setShowDeleteModal(false);
       setProductToDelete(null);
-    } catch (error) {
-      toast.error(`Failed to delete product: ${error.message}`);
-      console.error('Delete error:', error);
+      
+    } catch (err) {
+      console.error(err);
+      toast.error("Failed to delete product. Try again.");
     } finally {
       setIsDeleting(false);
     }
@@ -265,11 +255,6 @@ export default function Admin() {
     setProductToDelete(null);
   };
 
-  const formatPrice = (price) => {
-    // Remove currency symbol and commas, then add them back properly
-    const numericPrice = price.replace(/[₦,]/g, '');
-    return `₦${parseInt(numericPrice).toLocaleString()}`;
-  };
 
   // Show loading screen while checking authentication
   if (isCheckingAuth) {
