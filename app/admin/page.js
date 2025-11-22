@@ -1,27 +1,22 @@
 "use client";
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { motion } from 'framer-motion';
-import { productService } from '../../lib/api/productService';
-import { 
-  fileToBase64,
-  compressImage
-} from '../../lib/utils/imageUtils';
+import axios from "axios";
+
+
 import { 
   FiPlus, 
-  FiEdit2, 
-  FiTrash2, 
   FiSearch, 
-  FiSave, 
-  FiX,
-  FiEye,
   FiLogOut 
 } from 'react-icons/fi';
 import { Toaster, toast } from 'sonner';
-import Image from 'next/image';
 
 import Link from 'next/link';
 import { isAuthenticated, logout, getAuthUser, refreshSession } from '../component/auth';
 import LoginForm from '../component/LoginForm';
+import EditProductModal from '../component/admin/EditProductModal';
+import DeleteConfirmationModal from '../component/admin/DeleteConfirmationModal';
+import ProductCard from '../component/admin/ProductCard';
 
 export default function Admin() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
@@ -61,12 +56,6 @@ export default function Admin() {
   }, []);
 
   useEffect(() => {
-    if (isLoggedIn) {
-      loadProducts();
-    }
-  }, [isLoggedIn]);
-
-  useEffect(() => {
     if (searchTerm) {
       // Filter products locally for now
       const filtered = products.filter(product => 
@@ -92,19 +81,22 @@ export default function Admin() {
     toast.success('Logged out successfully!');
   };
 
-  const loadProducts = async () => {
+  const fetchProducts = useCallback(async () => {
     try {
-      const result = await productService.getAllProducts();
-      setProducts(result.data);
-      setFilteredProducts(result.data);
-      console.log(`📦 Loaded ${result.data.length} products from ${result.source || 'API'}`);
-    } catch (error) {
-      console.error('Failed to load products:', error);
-      toast.error(`Failed to load products: ${error.message}`);
-      setProducts([]);
-      setFilteredProducts([]);
+      
+      const { data } = await axios.get("/api/products");
+      setProducts(data || []); // Fallback to empty array if data is null/undefined
+      
+    } catch (err) {
+      console.error(err);
+      toast.error("Failed to load products. Check your connection.");
+      
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    fetchProducts();
+  }, [fetchProducts]);
 
   const handleAddProduct = () => {
     setEditingProduct(null);
@@ -256,10 +248,7 @@ export default function Admin() {
     try {
       const result = await productService.deleteProduct(productToDelete.id);
       toast.success(result.message || 'Product deleted successfully!');
-      
-      // Remove product from local state immediately
-      setProducts(prev => prev.filter(p => p._id !== productToDelete.id));
-      setFilteredProducts(prev => prev.filter(p => p._id !== productToDelete.id));
+
       
       setShowDeleteModal(false);
       setProductToDelete(null);
@@ -408,68 +397,14 @@ export default function Admin() {
       {/* Products Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 lg:gap-6">
         {filteredProducts.map((product) => (
-          <motion.div
+          <ProductCard
             key={product._id || product.id}
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow"
-          >
-            {/* Product Image */}
-            <div className="h-96 lg:h-52 bg-gray-200 relative">
-              {product.image && (
-                <Image
-                  src={product.image}
-                  alt={product.alt || product.name}
-                  fill
-                  className="object-cover"
-                  onError={(e) => {
-                    e.target.style.display = 'none';
-                  }}
-                />
-              )}
-              <div className="absolute top-3 right-3 bg-green-600 text-white px-3 py-1.5 rounded-lg text-sm font-semibold shadow-lg">
-                {product.price}
-              </div>
-            </div>
-
-            {/* Product Details */}
-            <div className="p-3 sm:p-4">
-              <h3 className="font-semibold text-gray-800 mb-2 text-base sm:text-sm lg:text-base line-clamp-2">
-                {product.name}
-              </h3>
-              <p className="text-xs sm:text-sm text-gray-600 mb-3 sm:mb-4">
-                ID: {product.id}
-              </p>
-
-              {/* Action Buttons */}
-              <div className="flex gap-2">
-                <button
-                  onClick={() => handleEditProduct(product)}
-                  disabled={isSaving || isDeleting}
-                  className="group flex-1 bg-green-800 text-white py-2.5 px-3 sm:px-4 rounded-lg flex items-center justify-center gap-1.5 sm:gap-2 hover:bg-green-600 hover:shadow-lg transform hover:-translate-y-0.5 transition-all duration-200 font-medium text-sm sm:text-base disabled:bg-gray-400 disabled:cursor-not-allowed disabled:transform-none"
-                >
-                  {isSaving ? (
-                    <div className="animate-spin rounded-full h-3 w-3 sm:h-4 sm:w-4 border border-white border-t-transparent"></div>
-                  ) : (
-                    <FiEdit2 size={14} className="sm:w-4 sm:h-4 group-hover:rotate-12 transition-transform duration-200" />
-                  )}
-                  <span>Edit</span>
-                </button>
-                <button
-                  onClick={() => handleDeleteProduct(product._id, product.name)}
-                  disabled={isSaving || isDeleting}
-                  className="group flex-1 bg-gray-200 text-gray-700 py-2.5 px-3 sm:px-4 rounded-lg flex items-center justify-center gap-1.5 sm:gap-2 hover:bg-red-100 hover:text-red-700 hover:shadow-lg transform hover:-translate-y-0.5 transition-all duration-200 font-medium border border-gray-300 hover:border-red-300 text-sm sm:text-base disabled:bg-gray-400 disabled:cursor-not-allowed disabled:transform-none disabled:text-gray-500"
-                >
-                  {isDeleting ? (
-                    <div className="animate-spin rounded-full h-3 w-3 sm:h-4 sm:w-4 border border-gray-700 border-t-transparent"></div>
-                  ) : (
-                    <FiTrash2 size={14} className="sm:w-4 sm:h-4 group-hover:scale-110 transition-transform duration-200" />
-                  )}
-                  <span>Delete</span>
-                </button>
-              </div>
-            </div>
-          </motion.div>
+            product={product}
+            isSaving={isSaving}
+            isDeleting={isDeleting}
+            handleEditProduct={handleEditProduct}
+            handleDeleteProduct={handleDeleteProduct}
+          />
         ))}
       </div>
 
@@ -483,257 +418,28 @@ export default function Admin() {
       )}
 
       {/* Modal */}
-      {showModal && (
-        <div 
-          className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50"
-          onClick={(e) => {
-            // Close modal when clicking outside
-            if (e.target === e.currentTarget) {
-              handleCloseModal();
-            }
-          }}
-        >
-          <motion.div
-            initial={{ scale: 0.9, opacity: 0 }}
-            animate={{ scale: 1, opacity: 1 }}
-            className="bg-white rounded-xl p-4 lg:p-6 w-full max-w-sm lg:max-w-lg max-h-[90vh] overflow-y-auto"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="flex justify-between items-center mb-4 lg:mb-6">
-              <h2 className="text-lg lg:text-2xl font-bold text-gray-800">
-                {editingProduct ? '✏️ Edit Product' : '➕ Add Product'}
-              </h2>
-              <button
-                onClick={handleCloseModal}
-                className="group p-2 rounded-full bg-gray-100 hover:bg-red-100 text-gray-500 hover:text-red-600 transition-all duration-200"
-                type="button"
-              >
-                <FiX size={20} className="group-hover:rotate-90 transition-transform duration-200" />
-              </button>
-            </div>
-
-            <div className="space-y-4 lg:space-y-6">
-              <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-2">
-                  Product Name *
-                </label>
-                <input
-                  type="text"
-                  value={currentProduct.name}
-                  onChange={(e) => setCurrentProduct({...currentProduct, name: e.target.value})}
-                  className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all duration-200 placeholder-gray-400"
-                  placeholder="Enter product name..."
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-2">
-                  Price *
-                </label>
-                <input
-                  type="text"
-                  value={currentProduct.price}
-                  onChange={(e) => {
-                    let value = e.target.value;
-                    // Remove any existing naira symbol and clean the input
-                    value = value.replace(/₦/g, '').replace(/,/g, '');
-                    
-                    // Only allow numbers and format with naira symbol
-                    if (value === '' || /^\d+$/.test(value)) {
-                      const formattedValue = value ? `₦${parseInt(value).toLocaleString()}` : '';
-                      setCurrentProduct({...currentProduct, price: formattedValue});
-                    }
-                  }}
-                  className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all duration-200 placeholder-gray-400"
-                  placeholder="₦25,000"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-2">
-                  Description/Alt Text
-                </label>
-                <input
-                  type="text"
-                  value={currentProduct.alt}
-                  onChange={(e) => setCurrentProduct({...currentProduct, alt: e.target.value})}
-                  className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all duration-200 placeholder-gray-400"
-                  placeholder="Product description..."
-                />
-              </div>
-
-              {/* Image Upload Section */}
-              <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-2">
-                  Product Image
-                </label>
-                
-                {/* Image Preview */}
-                {imagePreview && (
-                  <div className="mb-4">
-                    <img 
-                      src={imagePreview} 
-                      alt="Preview" 
-                      className="w-40 h-40 object-cover rounded-xl border-2 border-gray-200 shadow-md"
-                    />
-                  </div>
-                )}
-                
-                {/* Upload Button */}
-                <div className="flex flex-col sm:flex-row gap-3">
-                  <label className="group bg-green-800 text-white px-4 lg:px-6 py-3 rounded-xl cursor-pointer shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 hover:bg-green-600 transition-all duration-200 font-semibold text-center">
-                    <div className="flex items-center justify-center gap-2">
-                      {uploadingImage ? (
-                        <>
-                          <div className="animate-spin rounded-full h-5 w-5 border-2 border-white border-t-transparent"></div>
-                          <span className="text-sm lg:text-base">Uploading...</span>
-                        </>
-                      ) : (
-                        <>
-                          <span className="text-lg">📁</span>
-                          <span className="text-sm lg:text-base">Upload Image</span>
-                        </>
-                      )}
-                    </div>
-                    <input
-                      type="file"
-                      accept="image/*"
-                      onChange={handleImageUpload}
-                      className="hidden"
-                      disabled={uploadingImage}
-                    />
-                  </label>
-                  
-                  {imagePreview && (
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setImagePreview('');
-                        setCurrentProduct({...currentProduct, image: ''});
-                      }}
-                      className="group bg-gray-200 text-gray-700 px-4 lg:px-6 py-3 rounded-xl shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 hover:bg-red-100 hover:text-red-700 transition-all duration-200 font-semibold border border-gray-300 hover:border-red-300"
-                    >
-                      <div className="flex items-center justify-center gap-2">
-                        <FiTrash2 className="group-hover:scale-110 transition-transform duration-200" />
-                        <span className="text-sm lg:text-base">Remove</span>
-                      </div>
-                    </button>
-                  )}
-                </div>
-                
-                <p className="text-xs text-gray-500 mt-2">
-                  Upload images up to 5MB. Images will be automatically compressed for better performance.
-                </p>
-              </div>
-            </div>
-
-            {/* Action Buttons */}
-            <div className="flex flex-col sm:flex-row gap-3 lg:gap-4 mt-6 lg:mt-8 pt-4 border-t border-gray-200">
-              <button
-                type="button"
-                onClick={handleSaveProduct}
-                disabled={!currentProduct.name || !currentProduct.price || !currentProduct.alt || !currentProduct.image || isSaving}
-                className="group flex-1 bg-green-800 text-white py-3 px-4 lg:px-6 rounded-xl shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 hover:bg-green-600 transition-all duration-200 font-semibold disabled:bg-gray-400 disabled:cursor-not-allowed disabled:transform-none disabled:shadow-none"
-              >
-                <div className="flex items-center justify-center gap-2">
-                  {isSaving ? (
-                    <>
-                      <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent"></div>
-                      Saving...
-                    </>
-                  ) : (
-                    <>
-                      <FiSave className="group-hover:scale-110 transition-transform duration-200" />
-                      {editingProduct ? 'Update Product' : 'Save Product'}
-                    </>
-                  )}
-                </div>
-              </button>
-              <button
-                type="button"
-                onClick={handleCloseModal}
-                className="group bg-gray-200 text-gray-700 py-3 px-4 lg:px-6 rounded-xl shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 hover:bg-gray-300 transition-all duration-200 font-semibold border border-gray-300 hover:border-gray-400"
-              >
-                <div className="flex items-center justify-center gap-2">
-                  <FiX className="group-hover:rotate-90 transition-transform duration-200" />
-                  Cancel
-                </div>
-              </button>
-            </div>
-          </motion.div>
-        </div>
-      )}
+      <EditProductModal
+        showModal={showModal}
+        editingProduct={editingProduct}
+        currentProduct={currentProduct}
+        setCurrentProduct={setCurrentProduct}
+        imagePreview={imagePreview}
+        setImagePreview={setImagePreview}
+        uploadingImage={uploadingImage}
+        isSaving={isSaving}
+        handleImageUpload={handleImageUpload}
+        handleSaveProduct={handleSaveProduct}
+        handleCloseModal={handleCloseModal}
+      />
 
       {/* Delete Confirmation Modal */}
-      {showDeleteModal && (
-        <div 
-          className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50"
-          onClick={(e) => {
-            if (e.target === e.currentTarget) {
-              cancelDelete();
-            }
-          }}
-        >
-          <motion.div
-            initial={{ scale: 0.9, opacity: 0 }}
-            animate={{ scale: 1, opacity: 1 }}
-            className="bg-white rounded-xl p-4 lg:p-6 w-full max-w-sm lg:max-w-md"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="text-center">
-              {/* Warning Icon */}
-              <div className="mx-auto flex items-center justify-center h-16 w-16 rounded-full bg-red-100 mb-4">
-                <FiTrash2 className="h-8 w-8 text-red-600" />
-              </div>
-              
-              {/* Title */}
-              <h3 className="text-lg lg:text-xl font-bold text-gray-900 mb-2">
-                Delete Product
-              </h3>
-              
-              {/* Message */}
-              <p className="text-sm lg:text-base text-gray-600 mb-6">
-                Are you sure you want to delete <strong>"{productToDelete?.name}"</strong>? 
-                This action cannot be undone.
-              </p>
-              
-              {/* Action Buttons */}
-              <div className="flex flex-col sm:flex-row gap-3 justify-center">
-                <button
-                  type="button"
-                  onClick={confirmDeleteProduct}
-                  disabled={isDeleting}
-                  className="group bg-red-600 text-white py-3 px-6 rounded-xl shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 hover:bg-red-700 transition-all duration-200 font-semibold disabled:bg-gray-400 disabled:cursor-not-allowed disabled:transform-none"
-                >
-                  <div className="flex items-center justify-center gap-2">
-                    {isDeleting ? (
-                      <>
-                        <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent"></div>
-                        Deleting...
-                      </>
-                    ) : (
-                      <>
-                        <FiTrash2 className="group-hover:scale-110 transition-transform duration-200" />
-                        Yes, Delete
-                      </>
-                    )}
-                  </div>
-                </button>
-                <button
-                  type="button"
-                  onClick={cancelDelete}
-                  className="group bg-gray-200 text-gray-700 py-3 px-6 rounded-xl shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 hover:bg-gray-300 transition-all duration-200 font-semibold border border-gray-300 hover:border-gray-400"
-                >
-                  <div className="flex items-center justify-center gap-2">
-                    <FiX className="group-hover:rotate-90 transition-transform duration-200" />
-                    Cancel
-                  </div>
-                </button>
-              </div>
-            </div>
-          </motion.div>
-        </div>
-      )}
+      <DeleteConfirmationModal
+        showDeleteModal={showDeleteModal}
+        productToDelete={productToDelete}
+        isDeleting={isDeleting}
+        confirmDeleteProduct={confirmDeleteProduct}
+        cancelDelete={cancelDelete}
+      />
     </div>
   );
 }

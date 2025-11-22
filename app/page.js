@@ -1,5 +1,6 @@
 "use client";
 import Image from "next/image";
+import axios from "axios";
 import { motion } from "framer-motion";
 import { TbAward } from "react-icons/tb";
 import { PiMoneyWavy } from "react-icons/pi";
@@ -11,8 +12,8 @@ import emailjs from "@emailjs/browser";
 import { FaWhatsapp } from "react-icons/fa";
 import Goods from "./component/Goods";
 import Link from "next/link";
-import { useState, useEffect } from "react";
-import { productService } from "../lib/api/productService";
+import { useState, useEffect, useCallback } from "react";
+
 
 export default function Home() {
   const [selectedProducts, setSelectedProducts] = useState([]);
@@ -22,45 +23,22 @@ export default function Home() {
   const [error, setError] = useState(null);
   const [submittingOrder, setSubmittingOrder] = useState(false);
 
-  // Function to refresh products data
-  const refreshProducts = async () => {
+const fetchProducts = useCallback(async () => {
     try {
       setLoading(true);
-      setError(null);
-      
-      const result = await productService.getAllProducts();
-      setSolarProductsData(result.data);
-      console.log(`🔄 Refreshed ${result.data.length} products from ${result.source || 'API'}`);
-    } catch (error) {
-      console.error('❌ Failed to refresh products:', error);
-      setError(error.message);
-    } finally {
+      const { data } = await axios.get("/api/products");
+      setSolarProductsData(data || []); // Fallback to empty array if data is null/undefined
+      setLoading(false);
+    } catch (err) {
+      console.error(err);
+      toast.error("Failed to load products. Check your connection.");
       setLoading(false);
     }
-  };
+  }, []);
 
   useEffect(() => {
-    // Use the new axios-based product service
-    const fetchProducts = async () => {
-      try {
-        setLoading(true);
-        setError(null);
-        
-        const result = await productService.getAllProducts();
-        setSolarProductsData(result.data);
-        console.log(`📦 Loaded ${result.data.length} products from ${result.source || 'API'}`);
-        console.log(`📊 Total products available: ${result.total}`);
-      } catch (error) {
-        console.error('❌ Failed to load products:', error);
-        setError(error.message);
-        setSolarProductsData([]);
-      } finally {
-        setLoading(false);
-      }
-    };
-    
     fetchProducts();
-  }, []);
+  }, [fetchProducts]);
 
   const sendEmail = (e) => {
     e.preventDefault();
