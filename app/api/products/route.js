@@ -28,6 +28,10 @@ export async function GET(request) {
     
     try {
       // Try to get data from MongoDB with timeout
+      console.log('🔍 Attempting to fetch from MongoDB...');
+      console.log('Environment check - MONGODB_URI exists:', !!process.env.MONGODB_URI);
+      console.log('Environment check - MONGODB_URI starts with:', process.env.MONGODB_URI?.substring(0, 20));
+      
       const timeoutPromise = new Promise((_, reject) => 
         setTimeout(() => reject(new Error('Database connection timeout')), 20000)
       );
@@ -38,6 +42,8 @@ export async function GET(request) {
       if (!result.success) {
         throw new Error(result.error);
       }
+      
+      console.log('✅ Successfully fetched from MongoDB:', result.data.length, 'products');
     } catch (error) {
       console.log('🔄 Database connection failed, using fallback data');
       console.error('Database error:', error.message);
