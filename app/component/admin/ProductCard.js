@@ -40,7 +40,7 @@ export default function ProductCard({
           {product.name}
         </h3>
         <p className="text-xs sm:text-sm text-gray-600 mb-3 sm:mb-4">
-          ID: {product.id}
+          {product.description}
         </p>
 
         {/* Action Buttons */}
