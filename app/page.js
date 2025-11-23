@@ -235,8 +235,7 @@ const fetchProducts = useCallback(async () => {
           </h1>
           <p className="mt-5">
             Brighten your streets and compounds with high-efficiency solar
-            lights available in all watt options. Designed for durability with a
-            2-year warranty and up to 10 years lifespan, giving you reliable
+            lights available in all watt options. Designed for durability with a warranty and up to 10 years lifespan, giving you reliable
             lighting powered by the sun.
           </p>
           <Link href="https://wa.link/a4gni5" target="_blank">
@@ -334,7 +333,7 @@ const fetchProducts = useCallback(async () => {
           </div>
           <h3 className="font-semibold text-lg mb-2">Warranty</h3>
           <p className="w-5/6 mx-auto text-muted-foreground text-gray-500 ">
-            Our Solar Street lights comes with 2 Years Warranty
+            Our Solar Street lights comes with Warranty
           </p>
         </div>
 
