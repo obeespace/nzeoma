@@ -71,7 +71,7 @@ const fetchProducts = useCallback(async () => {
 
     // Prepare email data with recipient email
     const emailData = {
-      to_email: "obee.nzeoma@gmail.com", // Replace with your actual business email
+      to_email: "arinzechukwu.umeh@gmail.com", // Replace with your actual business email
       to_name: "Nzeoma Solar Team",
       user_name: formData.fullName,
       user_phone: formData.phoneNumber,
