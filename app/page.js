@@ -11,17 +11,19 @@ import solarlanding from "../public/landing.jpg";
 import emailjs from "@emailjs/browser";
 import { FaWhatsapp } from "react-icons/fa";
 import Goods from "./component/Goods";
+import ProductDetailModal from "./component/ProductDetailModal";
 import Link from "next/link";
 import { useState, useEffect, useCallback } from "react";
 
 
 export default function Home() {
   const [selectedProducts, setSelectedProducts] = useState([]);
-  const [currentProduct, setCurrentProduct] = useState("");
   const [solarProductsData, setSolarProductsData] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [submittingOrder, setSubmittingOrder] = useState(false);
+  const [selectedProductDetail, setSelectedProductDetail] = useState(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
 
 const fetchProducts = useCallback(async () => {
     try {
@@ -143,14 +145,21 @@ const fetchProducts = useCallback(async () => {
     deliveryTiming: ""
   });
 
-  const addProduct = (productName) => {
-    const productId = productName; // select stores id as value
+  const handleViewDetails = (product) => {
+    setSelectedProductDetail(product);
+    setIsModalOpen(true);
+  };
+
+  const handleCloseModal = () => {
+    setIsModalOpen(false);
+    setSelectedProductDetail(null);
+  };
+
+  const handleAddToCart = (product) => {
+    const productId = product._id || product.id;
     if (!productId) return;
 
-    const product = solarProductsData.find(p => p._id === productId || p.id === productId);
-    if (!product) return;
-
-    const existingProduct = selectedProducts.find(p => p.id === (product._id || product.id));
+    const existingProduct = selectedProducts.find(p => p.id === productId);
 
     const numericPrice = typeof product.price === 'number'
       ? product.price
@@ -160,18 +169,19 @@ const fetchProducts = useCallback(async () => {
 
     if (existingProduct) {
       setSelectedProducts(selectedProducts.map(p => 
-        p.id === (product._id || product.id) ? {...p, quantity: p.quantity + 1} : p
+        p.id === productId ? {...p, quantity: p.quantity + 1} : p
       ));
+      toast.success(`Added another ${product.name} to cart below!`);
     } else {
       setSelectedProducts([...selectedProducts, {
-        id: product._id || product.id,
+        id: productId,
         name: product.name,
         price: priceDisplay,
         quantity: 1,
         numericPrice
       }]);
+      toast.success(`${product.name} added to cart below!`);
     }
-    setCurrentProduct("");
   };
 
   const updateQuantity = (productName, change) => {
@@ -226,6 +236,12 @@ const fetchProducts = useCallback(async () => {
   return (
     <main>
       <Toaster position="top-right" />
+      <ProductDetailModal 
+        product={selectedProductDetail}
+        isOpen={isModalOpen}
+        onClose={handleCloseModal}
+        onAddToCart={handleAddToCart}
+      />
       
       <section className="mx-auto lg:grid lg:grid-cols-2 lg:gap-20 w-5/6 my-20 lg:my-32 items-center">
         <div>
@@ -297,7 +313,12 @@ const fetchProducts = useCallback(async () => {
             </div>
           ) : solarProductsData.length > 0 ? (
             solarProductsData.map((item, index) => (
-              <Goods key={item._id || item.id || index} {...item} />
+              <Goods 
+                key={item._id || item.id || index} 
+                {...item} 
+                onAddToCart={handleAddToCart}
+                onViewDetails={handleViewDetails}
+              />
             ))
           ) : (
             <div className="col-span-full text-center py-8">
@@ -462,40 +483,12 @@ const fetchProducts = useCallback(async () => {
               <option value="Zamfara">Zamfara</option>
             </select>
 
-            {/* Select product you need */}
-            <div className="space-y-4">
-              <div className="lg:flex gap-3">
-                <select
-                  className="block w-full border border-gray-300 rounded-full px-4 py-2 focus:outline-none focus:ring-2 focus:ring-green-600 bg-white"
-                  value={currentProduct}
-                  onChange={(e) => setCurrentProduct(e.target.value)}
-                >
-                  <option value="">
-                    {loading ? "Loading products..." : "Select product(s) and add to shoplist"}
-                  </option>
-                  {!loading && solarProductsData.map((product, index) => (
-                    <option key={product._id || index} value={product._id || product.id}>
-                      {product.name} - {typeof product.price === 'number' ? `₦${product.price.toLocaleString()}` : product.price}
-                    </option>
-                  ))}
-                </select>
-
-                <div className="flex justify-end">
-                  <button
-                    onClick={() => addProduct(currentProduct)}
-                    disabled={!currentProduct}
-                    className="bg-green-800 text-white mt-3 lg:mt-0 px-4 py-1 rounded-full font-semibold hover:bg-green-600 transition disabled:bg-gray-400 disabled:cursor-not-allowed"
-                  >
-                    Add
-                </button></div>
-              </div>
-
-              {/* Selected Products Display */}
-              {selectedProducts.length > 0 && (
-                <div className="mt-6 space-y-4">
-                  <h4 className="font-semibold text-lg">Selected Products:</h4>
-                  
-                  {selectedProducts.map((product, index) => (
+            {/* Shopping Cart Display */}
+            {selectedProducts.length > 0 && (
+              <div className="space-y-4">
+                <h4 className="font-semibold text-xl text-gray-800">🛒 Your Shopping Cart</h4>
+                
+                {selectedProducts.map((product, index) => (
                     <div key={index} className="bg-gray-50 p-4 rounded-lg border">
                       <div className="lg:flex items-center justify-between">
                         <div className="flex-1">
@@ -548,10 +541,8 @@ const fetchProducts = useCallback(async () => {
                       </span>
                     </div>
                   </div>
-                </div>
-              )}
-            </div>
-
+              </div>
+            )}
 
             <select
               className="block border lg:w-3/6 w-full border-gray-300 rounded-full px-4 py-2 focus:outline-none focus:ring-2 focus:ring-green-600 bg-white"
