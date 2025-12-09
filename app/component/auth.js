@@ -7,12 +7,6 @@ const getCredentialsFromEnv = () => {
   const envUsername = process.env.NEXT_PUBLIC_ADMIN_USERNAME;
   const envPassword = process.env.NEXT_PUBLIC_ADMIN_PASSWORD;
   
-  // Debug logging
-  console.log('Environment variables loaded:', {
-    username: envUsername ? 'SET' : 'NOT SET',
-    password: envPassword ? 'SET' : 'NOT SET'
-  });
-  
   return {
     username: envUsername || 'nzeoma_admin', // fallback
     password: envPassword || 'MarketGood25'  // fallback
@@ -22,12 +16,6 @@ const getCredentialsFromEnv = () => {
 export const login = (username, password) => {
   const credentials = getCredentialsFromEnv();
   
-  console.log('Login attempt with:', { username });
-  console.log('Expected credentials:', { 
-    username: credentials.username,
-    passwordLength: credentials.password?.length 
-  });
-  
   if (username === credentials.username && password === credentials.password) {
     const authData = {
       isAuthenticated: true,
@@ -35,11 +23,9 @@ export const login = (username, password) => {
       username: username
     };
     localStorage.setItem(AUTH_KEY, JSON.stringify(authData));
-    console.log('Login successful');
     return { success: true };
   }
   
-  console.log('Login failed - credentials do not match');
   return { success: false, error: 'Invalid username or password' };
 };
 

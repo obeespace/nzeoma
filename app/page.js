@@ -62,8 +62,6 @@ const fetchProducts = useCallback(async () => {
     const templateId = process.env.NEXT_PUBLIC_EMAILJS_TEMPLATE_ID;
     const publicKey = process.env.NEXT_PUBLIC_EMAILJS_PUBLIC_KEY;
 
-    console.log("EmailJS Config:", { serviceId, templateId, publicKey });
-
     // Check if environment variables are loaded
     if (!serviceId || !templateId || !publicKey) {
       console.error("EmailJS environment variables not loaded properly");
@@ -88,8 +86,6 @@ const fetchProducts = useCallback(async () => {
       total_items: selectedProducts.reduce((sum, p) => sum + p.quantity, 0).toString()
     };
 
-    console.log("Sending email with data:", emailData);
-
     // Initialize EmailJS if not already done
     emailjs.init(publicKey);
 
@@ -101,7 +97,6 @@ const fetchProducts = useCallback(async () => {
       )
       .then(
         (result) => {
-          console.log("EmailJS Success:", result);
           toast.success("Order submitted successfully!");
           
           // Reset the form state
@@ -113,7 +108,6 @@ const fetchProducts = useCallback(async () => {
             deliveryTiming: ""
           });
           setSelectedProducts([]);
-          setCurrentProduct("");
           setSubmittingOrder(false);
         },
         (error) => {
@@ -223,16 +217,6 @@ const fetchProducts = useCallback(async () => {
     }));
   };
 
-  const handleSubmit = () => {
-    if (!isFormValid()) {
-      alert("Please fill in all required fields and select at least one product.");
-      return;
-    }
-    
-    // Submit logic here
-    alert("Order submitted successfully!");
-  };
-
   return (
     <main>
       <Toaster position="top-right" />
@@ -295,7 +279,7 @@ const fetchProducts = useCallback(async () => {
             <div className="col-span-full text-center py-8">
               <p className="text-red-500 mb-2">⚠️ {error}</p>
               <button 
-                onClick={refreshProducts}
+                onClick={fetchProducts}
                 disabled={loading}
                 className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 disabled:bg-gray-400 disabled:cursor-not-allowed flex items-center gap-2 mx-auto"
               >
