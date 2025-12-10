@@ -17,13 +17,28 @@ import { useState, useEffect, useCallback } from "react";
 
 
 export default function Home() {
-  const [selectedProducts, setSelectedProducts] = useState([]);
+  // Load cart from localStorage on mount
+  const [selectedProducts, setSelectedProducts] = useState(() => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('nzeoma_cart');
+      return saved ? JSON.parse(saved) : [];
+    }
+    return [];
+  });
+  
   const [solarProductsData, setSolarProductsData] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [submittingOrder, setSubmittingOrder] = useState(false);
   const [selectedProductDetail, setSelectedProductDetail] = useState(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
+
+  // Save cart to localStorage whenever it changes
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('nzeoma_cart', JSON.stringify(selectedProducts));
+    }
+  }, [selectedProducts]);
 
 const fetchProducts = useCallback(async () => {
     try {
